@@ -1,10 +1,4 @@
-"""
-Message normalizer service.
-
-Transforms raw webhook payloads from any channel into the unified
-message schema. Each channel may have slightly different field names
-or formats — this service handles the mapping.
-"""
+"""Normalises webhook payloads into the unified message schema."""
 
 import uuid
 from app.models.webhook import WebhookPayload
@@ -31,10 +25,10 @@ def normalize_message(payload: WebhookPayload) -> UnifiedMessage:
     # Generate a unique ID for tracking this message through the pipeline
     message_id = str(uuid.uuid4())
 
-    # Normalise the message text — strip whitespace, handle encoding
+
     message_text = _normalise_text(payload.message, payload.source)
 
-    # Classify the query type based on message content
+
     query_type = classify_query(message_text)
 
     return UnifiedMessage(
@@ -66,13 +60,12 @@ def _normalise_text(message: str, source: str) -> str:
     # Strip leading/trailing whitespace
     text = message.strip()
 
-    # Channel-specific normalisation
+
     if source == "whatsapp":
-        # WhatsApp messages may contain formatting markers (*bold*, _italic_)
-        # We keep them as they convey emphasis/intent
+        # WhatsApp formatting kept as-is
         pass
     elif source == "booking_com":
-        # Booking.com messages sometimes include auto-generated prefixes
+        # Strip auto-generated prefixes from Booking.com
         prefixes_to_strip = [
             "Guest message: ",
             "New message from guest: ",
@@ -82,13 +75,13 @@ def _normalise_text(message: str, source: str) -> str:
                 text = text[len(prefix):]
                 break
     elif source == "airbnb":
-        # Airbnb messages are generally clean
+
         pass
     elif source == "instagram":
-        # Instagram DMs may have hashtags or mentions we want to keep
+
         pass
     elif source == "direct":
-        # Direct messages (email/form) are typically clean
+
         pass
 
     return text

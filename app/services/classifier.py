@@ -1,23 +1,12 @@
-"""
-Query type classifier.
-
-Uses a hybrid approach: fast keyword-based classification first,
-with the option for Claude to override during drafting.
-
-Why hybrid?
-- Keywords handle ~80% of messages without an API call (free, instant)
-- Claude catches nuanced edge cases during the drafting step
-- This is how a startup would do it — don't burn API credits on every message
-"""
+"""Rule-based query classifier using keyword matching."""
 
 import re
 from app.models.unified import QueryType
 
 
-# Keyword patterns mapped to query types, ordered by specificity
-# More specific patterns are checked first to avoid false matches
+# Ordered by priority — more specific patterns first
 CLASSIFICATION_RULES: list[tuple[QueryType, list[str]]] = [
-    # Complaints — check first because they can contain other keywords
+    # Complaints first
     (
         "complaint",
         [
@@ -47,7 +36,7 @@ CLASSIFICATION_RULES: list[tuple[QueryType, list[str]]] = [
             "stink",
         ],
     ),
-    # Special requests — check before general post-sales
+    # Special requests
     (
         "special_request",
         [
@@ -73,7 +62,7 @@ CLASSIFICATION_RULES: list[tuple[QueryType, list[str]]] = [
             "honeymoon",
         ],
     ),
-    # Post-sales check-in queries
+    # Check-in / logistics
     (
         "post_sales_checkin",
         [
@@ -100,7 +89,7 @@ CLASSIFICATION_RULES: list[tuple[QueryType, list[str]]] = [
             "how do i",
         ],
     ),
-    # Pricing queries — check before availability (pricing is more specific)
+    # Pricing
     (
         "pre_sales_pricing",
         [
@@ -126,7 +115,7 @@ CLASSIFICATION_RULES: list[tuple[QueryType, list[str]]] = [
             "cheap",
         ],
     ),
-    # Availability queries
+    # Availability / booking
     (
         "pre_sales_availability",
         [
@@ -215,10 +204,10 @@ def get_classification_confidence(message_text: str, query_type: QueryType) -> f
         # general_enquiry — no keywords matched at all
         return 0.5
 
-    # Base confidence from keyword density
+
     keyword_ratio = min(matching_keywords / 3, 1.0)  # Cap at 3 matches = 1.0
 
-    # Penalise very long messages (likely multi-topic, harder to classify)
+    # Long messages are harder to classify
     word_count = len(text_lower.split())
     length_penalty = 0.0
     if word_count > 50:
@@ -226,7 +215,7 @@ def get_classification_confidence(message_text: str, query_type: QueryType) -> f
     elif word_count > 100:
         length_penalty = 0.2
 
-    # Check if multiple categories match (ambiguous message)
+    # Multiple categories matching = ambiguous
     categories_matched = 0
     for qt, keywords in CLASSIFICATION_RULES:
         if any(kw in text_lower for kw in keywords):

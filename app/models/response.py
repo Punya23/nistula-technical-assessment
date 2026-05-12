@@ -1,25 +1,15 @@
-"""
-API response model.
-
-Defines the structure returned by the /webhook/message endpoint
-after processing an inbound guest message.
-"""
+"""API response models."""
 
 from typing import Literal, Optional, Dict, Any
 from pydantic import BaseModel, Field
 
 
-# Action thresholds
+
 ActionType = Literal["auto_send", "agent_review", "escalate"]
 
 
 class WebhookResponse(BaseModel):
-    """
-    Response returned after processing a guest message.
-
-    Contains the AI-drafted reply, confidence score, and
-    recommended action based on confidence thresholds.
-    """
+    """Response after processing a guest message."""
 
     message_id: str = Field(
         ...,

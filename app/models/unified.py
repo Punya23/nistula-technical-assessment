@@ -1,15 +1,10 @@
-"""
-Unified message schema.
-
-All inbound messages are normalised into this schema before
-being passed to the AI drafter, regardless of source channel.
-"""
+"""Unified message schema — all messages get normalised into this."""
 
 from typing import Optional, Literal
 from pydantic import BaseModel, Field
 
 
-# Query type classifications as defined in the assessment brief
+
 QueryType = Literal[
     "pre_sales_availability",
     "pre_sales_pricing",
@@ -21,12 +16,7 @@ QueryType = Literal[
 
 
 class UnifiedMessage(BaseModel):
-    """
-    Normalised message schema — the single format used throughout the pipeline.
-
-    Every inbound message, regardless of source channel, is transformed
-    into this schema before classification and AI processing.
-    """
+    """Normalised message format used across the pipeline."""
 
     message_id: str = Field(
         ...,

@@ -1,11 +1,4 @@
-"""
-Integration tests for the /webhook/message endpoint.
-
-Tests the full pipeline: payload validation → normalisation →
-classification → AI drafting → confidence scoring → response.
-
-These tests use FastAPI's TestClient (no server needed).
-"""
+"""Integration tests for the webhook endpoint."""
 
 import pytest
 from fastapi.testclient import TestClient
@@ -13,9 +6,6 @@ from app.main import app
 
 
 client = TestClient(app)
-
-
-# --- Test Payloads ---
 
 # Test 1: Pre-sales availability query (from assessment brief)
 AVAILABILITY_PAYLOAD = {

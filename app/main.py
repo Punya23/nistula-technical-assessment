@@ -38,12 +38,12 @@ logger = logging.getLogger(__name__)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifecycle — startup and shutdown events."""
-    logger.info("🚀 Nistula Guest Message Handler starting up")
+    logger.info("# Nistula Guest Message Handler starting up")
     logger.info(f"   Claude model: {settings.claude_model}")
     logger.info(f"   API key configured: {'Yes' if settings.anthropic_api_key else 'No'}")
     logger.info(f"   Debug mode: {settings.debug}")
     yield
-    logger.info("👋 Nistula Guest Message Handler shutting down")
+    logger.info("# Nistula Guest Message Handler shutting down")
 
 
 # --- FastAPI Application ---

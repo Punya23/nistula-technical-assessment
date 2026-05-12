@@ -1,9 +1,4 @@
-"""
-Application configuration loaded from environment variables.
-
-Uses Pydantic BaseSettings for type-safe config with .env file support.
-All sensitive values (API keys) come from .env — never hardcoded.
-"""
+"""App config — loads from .env file using Pydantic BaseSettings."""
 
 from pydantic_settings import BaseSettings
 from pydantic import Field
@@ -48,5 +43,5 @@ class Settings(BaseSettings):
     }
 
 
-# Singleton settings instance
+
 settings = Settings()

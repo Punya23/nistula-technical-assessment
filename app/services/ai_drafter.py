@@ -1,10 +1,4 @@
-"""
-AI drafter service — Claude API integration.
-
-Sends the normalised guest message with property context to Claude
-and receives a drafted reply. Handles API errors gracefully with
-fallback responses.
-"""
+"""AI reply drafting via Claude API. Handles errors with fallback responses."""
 
 import json
 import logging
@@ -17,7 +11,7 @@ from app.data.property_context import format_property_for_prompt, get_property_c
 logger = logging.getLogger(__name__)
 
 
-# System prompt — defines Claude's persona and constraints
+# System prompt for the AI
 SYSTEM_PROMPT = """You are a warm, professional hospitality concierge for Nistula — a luxury villa rental company in Goa, India.
 
 Your role:
@@ -52,9 +46,7 @@ Return your response as a JSON object with exactly these fields:
 
 
 def _build_user_prompt(unified_message: UnifiedMessage) -> str:
-    """
-    Build the user prompt with the guest message and property context.
-    """
+    """Build the user prompt with guest message and property context."""
     property_context = format_property_for_prompt(unified_message.property_id)
 
     return f"""Guest Message Details:
@@ -71,18 +63,7 @@ Respond to this guest message. Return your response as the specified JSON object
 
 
 async def draft_reply(unified_message: UnifiedMessage) -> tuple[str, dict]:
-    """
-    Send the guest message to Claude and get a drafted reply.
-
-    Args:
-        unified_message: The normalised message to respond to.
-
-    Returns:
-        Tuple of (drafted_reply_text, confidence_factors_from_ai).
-
-    Raises:
-        AIServiceError: If the Claude API call fails after retries.
-    """
+    """Send message to Claude, return (reply_text, confidence_factors)."""
     user_prompt = _build_user_prompt(unified_message)
 
     try:
@@ -113,7 +94,7 @@ async def draft_reply(unified_message: UnifiedMessage) -> tuple[str, dict]:
                     "fallback": True,
                 }
 
-            # Parse Claude's response
+            # Parse response
             data = response.json()
             content = data.get("content", [{}])[0].get("text", "")
 
@@ -146,11 +127,9 @@ async def draft_reply(unified_message: UnifiedMessage) -> tuple[str, dict]:
 def _parse_ai_response(
     raw_content: str, unified_message: UnifiedMessage
 ) -> tuple[str, dict]:
-    """
-    Parse Claude's JSON response, handling malformed responses gracefully.
-    """
+    """Parse JSON response. Handles markdown-wrapped JSON and plain text."""
     try:
-        # Claude sometimes wraps JSON in markdown code blocks
+        # Strip markdown code blocks if present
         cleaned = raw_content.strip()
         if cleaned.startswith("```json"):
             cleaned = cleaned[7:]
@@ -174,11 +153,11 @@ def _parse_ai_response(
         return drafted_reply, confidence_factors
 
     except json.JSONDecodeError:
-        # Claude didn't return valid JSON — use the raw text as the reply
+        # Not valid JSON — use raw text if it looks like a normal reply
         logger.warning(
             "Claude response was not valid JSON, using raw text as reply"
         )
-        # If it looks like a reasonable reply, use it directly
+
         if len(raw_content) > 20 and not raw_content.startswith("{"):
             return raw_content.strip(), {
                 "warning": "Response was plain text, not JSON",
@@ -191,12 +170,7 @@ def _parse_ai_response(
 
 
 def _fallback_reply(unified_message: UnifiedMessage) -> str:
-    """
-    Generate a safe fallback reply when the AI service is unavailable.
-
-    The fallback acknowledges the message and promises a human follow-up.
-    This ensures the guest is never left without a response.
-    """
+    """Safe fallback when AI is unavailable. Guest always gets a response."""
     first_name = unified_message.guest_name.split()[0]
 
     fallback_messages = {
