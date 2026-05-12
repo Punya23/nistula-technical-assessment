@@ -20,45 +20,20 @@ That's what this project does.
 
 ## How It Works
 
-```
-Guest sends message (WhatsApp / Booking.com / Airbnb / Instagram / Direct)
-        │
-        ▼
-┌───────────────┐
-│   Validate    │  Pydantic checks source, fields, types
-│   Payload     │  → 422 if invalid
-└───────┬───────┘
-        │
-        ▼
-┌───────────────┐
-│  Normalise    │  Strip channel artifacts, generate UUID
-│  Message      │  → One unified schema regardless of source
-└───────┬───────┘
-        │
-        ▼
-┌───────────────┐
-│  Classify     │  Rule-based keyword matching
-│  Query Type   │  → availability, pricing, checkin, complaint, etc.
-└───────┬───────┘
-        │
-        ▼
-┌───────────────┐
-│  Draft Reply  │  Claude API with property context
-│  (Claude AI)  │  → Fallback reply if API is down
-└───────┬───────┘
-        │
-        ▼
-┌───────────────┐
-│  Score        │  Additive confidence model
-│  Confidence   │  → auto_send / agent_review / escalate
-└───────┬───────┘
-        │
-        ▼
-┌───────────────┐
-│   Return      │  message_id, drafted_reply, score, action
-│   Response    │  + full breakdown of why
-└───────────────┘
-```
+<p align="center">
+  <img src="docs/architecture.png" alt="System Architecture — Message Processing Pipeline" width="600"/>
+</p>
+
+**Pipeline stages:**
+
+1. **Entry Point** — `POST /webhook/message` receives JSON from any channel
+2. **Validation** — Pydantic checks source, guest_name, message, timestamp → 422 if invalid
+3. **Normaliser** — Generates UUID, strips channel artifacts (e.g. Booking.com prefixes), unifies schema
+4. **Classifier** — Rule-based keyword matching across 5 priority-ordered categories (100+ keywords) → outputs query type + classification confidence
+5. **AI Drafter** — Sends unified message + full property context to Claude API → handles timeouts, errors, and bad JSON with per-type fallback replies
+6. **Confidence Scorer** — Additive model starting at 0.50, adjusts based on keyword match, booking ref, context coverage, reply quality, multi-question penalty, complaint cap
+7. **Action Router** — Maps final score to `auto_send` (>0.85), `agent_review` (0.60–0.85), or `escalate` (<0.60). Complaints always escalate.
+8. **Response** — Returns message_id, query_type, drafted_reply, confidence_score, action, and full breakdown
 
 ---
 
