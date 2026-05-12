@@ -1,14 +1,15 @@
 # Nistula Guest Message Handler
 
-AI-powered unified guest messaging backend for [Nistula](https://nistula.life) — a luxury villa and apartment rental company based in Assagao, Goa.
+AI-powered unified guest messaging backend for [Nistula](https://nistula.life), a luxury villa and apartment rental company based in Assagao, Goa.
 
-Built with FastAPI, Claude API integration, rule-based query classification, and a PostgreSQL schema designed for multi-channel hospitality operations.
+Built with FastAPI, Claude API integration, rule based query classification, and a PostgreSQL schema designed for multi-channel hospitality operations.
 
 ---
 
 ## The Problem
 
-Nistula manages luxury villas across multiple booking platforms — WhatsApp, Booking.com, Airbnb, Instagram, and direct enquiries. Each channel brings its own message format, its own quirks, and its own urgency.
+Nistula manages luxury villas across multiple booking platforms 
+-WhatsApp, Booking.com, Airbnb, Instagram, and direct enquiries. Each channel brings its own message format, its own quirks, and its own urgency.
 
 A guest asking "Is the villa available?" on WhatsApp at 2pm is a sales opportunity. A guest writing "The AC is not working. I want a refund." at 3am is a fire drill.
 
@@ -53,12 +54,12 @@ To understand how this system works in production, here's what happens when a re
 
 **3:02 AM — WhatsApp Business API pushes the message to our webhook:**
 
-WhatsApp automatically POSTs Vikram's message to `POST /webhook/message`. We don't poll or extract — every channel (WhatsApp, Booking.com, Airbnb, Instagram) pushes messages to us in real time via webhooks.
+WhatsApp automatically POSTs Vikram's message to `POST /webhook/message`. We don't poll or extract every channel (WhatsApp, Booking.com, Airbnb, Instagram) pushes messages to us in real time via webhooks.
 
 **3:02 AM — Our pipeline processes it in ~3 seconds:**
 
 1. **Validate** — Payload schema checks pass
-2. **Normalise** — Strips channel-specific artifacts, assigns UUID, maps to unified schema
+2. **Normalise** — Strips channel specific artifacts, assigns UUID, maps to unified schema
 3. **Classify** — Keyword matching detects "not working", "unacceptable", "refund" → `complaint`
 4. **AI Draft** — Claude generates an empathetic response using Villa B1's property context (caretaker hours, amenities, policies)
 5. **Confidence Score** — Starts at 0.50, gains +0.20 for clear keyword match, +0.10 for booking ref — but gets **capped at 0.55** because it's a complaint. Complaints should never be auto-sent.
@@ -81,7 +82,7 @@ WhatsApp automatically POSTs Vikram's message to `POST /webhook/message`. We don
 
 **3:02 AM — The drafted reply is sent back to Vikram on WhatsApp:**
 
-The system calls the WhatsApp Business API to post the reply back to the same chat thread. Vikram sees a response within seconds — he doesn't know AI was involved. It reads like a human replied at 3 AM.
+The system calls the WhatsApp Business API to post the reply back to the same chat thread. Vikram sees a response within seconds he doesn't know AI was involved. It reads like a human replied at 3 AM.
 
 **What gets stored (using our schema.sql):**
 
@@ -147,7 +148,7 @@ An agent can read that at 3am and make a decision.
 
 ### 3. The "What If Claude Goes Down?" Problem
 
-The biggest risk in any AI-powered system: the AI is an external dependency. Claude API could timeout, rate-limit, or go down entirely. A guest should never send a message and get... nothing.
+The biggest risk in any AI powered system: the AI is an external dependency. Claude API could timeout, rate limit, or go down entirely. A guest should never send a message and get... nothing.
 
 **What I did:** Every query type has a handwritten fallback reply. If Claude is unavailable, the guest gets a polite, specific response like:
 
@@ -386,7 +387,7 @@ Why this wording: acknowledge the frustration immediately, don't argue about the
 
 **Question B — What should the system do beyond sending a message?**
 
-Trigger a P1 escalation: SMS the on-call manager, push notification to the ops app, log the incident with severity + timestamps, and start a 30-minute auto-follow-up timer. If no human responds within 30 minutes, the system sends a second message to the guest and escalates to the property owner.
+Trigger a P1 escalation: SMS the on call manager, push notification to the ops app, log the incident with severity + timestamps, and start a 30-minute auto-follow-up timer. If no human responds within 30 minutes, the system sends a second message to the guest and escalates to the property owner.
 
 **Question C — Third hot water complaint in two months — what now?**
 
@@ -396,11 +397,11 @@ This is a maintenance pattern, not a coincidence. Build a recurring-issue detect
 
 ## About Nistula
 
-[Nistula](https://nistula.life) (निस्तुला — "incomparable") is a hospitality startup in Assagao, North Goa, built by a group of startup founders and entrepreneurs who moved to Goa post-COVID looking for a different way to live and work.
+[Nistula](https://nistula.life) (निस्तुला — "incomparable")
 
-They run luxury private pool villas and apartments that combine the privacy of a home with five-star concierge services — in-house chefs, airport transfers, curated experiences. Guests book through WhatsApp, Booking.com, Airbnb, Instagram, and direct enquiries.
+Running luxury private pool villas and apartments that combine the privacy of a home with five star concierge services in house chefs, airport transfers, curated experiences. Guests book through WhatsApp, Booking.com, Airbnb, Instagram, and direct enquiries.
 
-This assessment builds the backend that would power their guest communication — understanding what each guest needs, drafting intelligent replies, and knowing when AI can handle it vs. when a human needs to step in.
+This assessment builds the backend that would power their guest communication understanding what each guest needs, drafting intelligent replies, and knowing when AI can handle it vs. when a human needs to step in.
 
 ---
 
