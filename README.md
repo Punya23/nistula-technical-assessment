@@ -8,8 +8,7 @@ Built with FastAPI, Claude API integration, rule based query classification, and
 
 ## The Problem
 
-Nistula manages luxury villas across multiple booking platforms 
--WhatsApp, Booking.com, Airbnb, Instagram, and direct enquiries. Each channel brings its own message format, its own quirks, and its own urgency.
+Nistula manages luxury villas across multiple booking platforms: WhatsApp, Booking.com, Airbnb, Instagram, and direct enquiries. Each channel brings its own message format, its own quirks, and its own urgency.
 
 A guest asking "Is the villa available?" on WhatsApp at 2pm is a sales opportunity. A guest writing "The AC is not working. I want a refund." at 3am is a fire drill.
 
@@ -54,7 +53,7 @@ To understand how this system works in production, here's what happens when a re
 
 **3:02 AM — WhatsApp Business API pushes the message to our webhook:**
 
-WhatsApp automatically POSTs Vikram's message to `POST /webhook/message`. We don't poll or extract every channel (WhatsApp, Booking.com, Airbnb, Instagram) pushes messages to us in real time via webhooks.
+WhatsApp automatically POSTs Vikram's message to `POST /webhook/message`. We don't poll or scrape. Every channel (WhatsApp, Booking.com, Airbnb, Instagram) pushes messages to us in real time via webhooks.
 
 **3:02 AM — Our pipeline processes it in ~3 seconds:**
 
@@ -82,7 +81,7 @@ WhatsApp automatically POSTs Vikram's message to `POST /webhook/message`. We don
 
 **3:02 AM — The drafted reply is sent back to Vikram on WhatsApp:**
 
-The system calls the WhatsApp Business API to post the reply back to the same chat thread. Vikram sees a response within seconds he doesn't know AI was involved. It reads like a human replied at 3 AM.
+The system calls the WhatsApp Business API to post the reply back to the same chat thread. Vikram sees a response within seconds. He doesn't know AI was involved. It reads like a human replied at 3 AM.
 
 **What gets stored (using our schema.sql):**
 
@@ -100,7 +99,7 @@ The original message, the AI draft, the confidence score (0.55), the action take
 | Alert management | Action field in response | SMS/Slack/email notification service |
 | Store everything | Schema designed | Connect PostgreSQL with SQLAlchemy |
 
-The pipeline we built is the decision engine — the hard part. The channel adapters and notification services are thin integration layers that carry messages in and replies out.
+The pipeline we built is the decision engine. The channel adapters and notification services are thin integration layers that carry messages in and replies out.
 
 ---
 
@@ -387,7 +386,7 @@ Why this wording: acknowledge the frustration immediately, don't argue about the
 
 **Question B — What should the system do beyond sending a message?**
 
-Trigger a P1 escalation: SMS the on call manager, push notification to the ops app, log the incident with severity + timestamps, and start a 30-minute auto-follow-up timer. If no human responds within 30 minutes, the system sends a second message to the guest and escalates to the property owner.
+Trigger a P1 escalation: SMS the on-call manager, push notification to the ops app, log the incident with severity and timestamps, and start a 30-minute auto-follow-up timer. If no human responds within 30 minutes, the system sends a second message to the guest and escalates to the property owner.
 
 **Question C — Third hot water complaint in two months — what now?**
 
@@ -397,11 +396,11 @@ This is a maintenance pattern, not a coincidence. Build a recurring-issue detect
 
 ## About Nistula
 
-[Nistula](https://nistula.life) (निस्तुला — "incomparable")
+[Nistula](https://nistula.life) (निस्तुला — "incomparable") is a hospitality startup in Assagao, North Goa.
 
-Running luxury private pool villas and apartments that combine the privacy of a home with five star concierge services in house chefs, airport transfers, curated experiences. Guests book through WhatsApp, Booking.com, Airbnb, Instagram, and direct enquiries.
+They run luxury private pool villas and apartments that combine the privacy of a home with five-star concierge services: in-house chefs, airport transfers, curated experiences. Guests book through WhatsApp, Booking.com, Airbnb, Instagram, and direct enquiries.
 
-This assessment builds the backend that would power their guest communication understanding what each guest needs, drafting intelligent replies, and knowing when AI can handle it vs. when a human needs to step in.
+This assessment builds the backend that would power their guest communication: understanding what each guest needs, drafting intelligent replies, and knowing when AI can handle it vs. when a human needs to step in.
 
 ---
 
