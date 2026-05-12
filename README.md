@@ -142,6 +142,10 @@ docker run -p 8000:8000 --env-file .env nistula-handler
 
 Why Docker? A reviewer can spin up the project in one command without worrying about Python versions, virtualenvs, or dependency conflicts. It also mirrors how this would actually deploy — containerised behind a load balancer, scaling horizontally as message volume grows.
 
+### Interactive Demo
+
+After starting the server, open [localhost:8000/demo](http://localhost:8000/demo/) to test the pipeline visually. Click any pre-loaded guest scenario or type your own message — the UI shows each pipeline stage (validation → classification → AI draft → confidence scoring → action) in real time.
+
 ---
 
 ## API Reference

@@ -14,8 +14,8 @@
 
         body {
             font-family: 'Plus Jakarta Sans', sans-serif;
-            background: #0f1117;
-            color: #e1e4ea;
+            background: #000000;
+            color: #e5e5e5;
             min-height: 100vh;
             line-height: 1.6;
         }
@@ -23,20 +23,20 @@
         /* --- Header --- */
         .header {
             padding: 24px 40px;
-            border-bottom: 1px solid #1e2130;
+            border-bottom: 1px solid #1a1a1a;
             display: flex;
             align-items: center;
             justify-content: space-between;
         }
 
         .header h1 {
-            font-size: 18px;
+            font-size: 20px;
             font-weight: 600;
             letter-spacing: -0.3px;
         }
 
         .header h1 span {
-            color: #6c7086;
+            color: #666;
             font-weight: 400;
         }
 
@@ -55,7 +55,7 @@
 
         .header-status {
             font-size: 13px;
-            color: #6c7086;
+            color: #666;
             display: flex;
             align-items: center;
         }
@@ -69,7 +69,7 @@
 
         /* --- Left Panel --- */
         .left-panel {
-            border-right: 1px solid #1e2130;
+            border-right: 1px solid #1a1a1a;
             padding: 24px;
             overflow-y: auto;
             display: flex;
@@ -78,17 +78,17 @@
         }
 
         .section-label {
-            font-size: 11px;
+            font-size: 12px;
             font-weight: 600;
             text-transform: uppercase;
             letter-spacing: 1px;
-            color: #6c7086;
+            color: #555;
             margin-bottom: 4px;
         }
 
         .scenario-card {
-            background: #181a24;
-            border: 1px solid #1e2130;
+            background: #111111;
+            border: 1px solid #1a1a1a;
             border-radius: 12px;
             padding: 14px 16px;
             cursor: pointer;
@@ -96,31 +96,31 @@
         }
 
         .scenario-card:hover {
-            border-color: #3b3f54;
-            background: #1c1f2e;
+            border-color: #333;
+            background: #161616;
         }
 
         .scenario-card.active {
-            border-color: #818cf8;
-            background: #1c1f2e;
+            border-color: #fff;
+            background: #161616;
         }
 
         .scenario-card .name {
-            font-size: 14px;
+            font-size: 15px;
             font-weight: 600;
             margin-bottom: 2px;
         }
 
         .scenario-card .channel {
-            font-size: 11px;
+            font-size: 12px;
             font-weight: 500;
-            color: #818cf8;
+            color: #888;
             margin-bottom: 6px;
         }
 
         .scenario-card .preview {
-            font-size: 13px;
-            color: #8b8fa3;
+            font-size: 14px;
+            color: #777;
             display: -webkit-box;
             -webkit-line-clamp: 2;
             -webkit-box-orient: vertical;
@@ -134,12 +134,12 @@
 
         .custom-input-area textarea {
             width: 100%;
-            background: #181a24;
-            border: 1px solid #1e2130;
+            background: #111111;
+            border: 1px solid #1a1a1a;
             border-radius: 12px;
-            color: #e1e4ea;
+            color: #e5e5e5;
             font-family: 'Plus Jakarta Sans', sans-serif;
-            font-size: 13px;
+            font-size: 14px;
             padding: 14px 16px;
             resize: none;
             height: 80px;
@@ -148,23 +148,23 @@
         }
 
         .custom-input-area textarea:focus {
-            border-color: #818cf8;
+            border-color: #444;
         }
 
         .custom-input-area textarea::placeholder {
-            color: #4a4e63;
+            color: #444;
         }
 
         .send-btn {
             width: 100%;
             margin-top: 10px;
             padding: 12px;
-            background: #818cf8;
-            color: #fff;
+            background: #fff;
+            color: #000;
             border: none;
             border-radius: 10px;
             font-family: 'Plus Jakarta Sans', sans-serif;
-            font-size: 14px;
+            font-size: 15px;
             font-weight: 600;
             cursor: pointer;
             transition: opacity 0.2s;
@@ -191,7 +191,7 @@
             align-items: center;
             justify-content: center;
             height: 100%;
-            color: #4a4e63;
+            color: #444;
             text-align: center;
         }
 
@@ -213,8 +213,8 @@
         }
 
         .pipeline-step {
-            background: #181a24;
-            border: 1px solid #1e2130;
+            background: #111111;
+            border: 1px solid #1a1a1a;
             border-radius: 14px;
             padding: 18px 20px;
             opacity: 0;
@@ -238,20 +238,20 @@
             width: 24px;
             height: 24px;
             border-radius: 8px;
-            background: #252838;
+            background: #1a1a1a;
             display: flex;
             align-items: center;
             justify-content: center;
             font-size: 12px;
             font-weight: 700;
-            color: #818cf8;
+            color: #fff;
             flex-shrink: 0;
         }
 
         .step-title {
-            font-size: 13px;
+            font-size: 14px;
             font-weight: 600;
-            color: #e1e4ea;
+            color: #e5e5e5;
         }
 
         .step-status {
@@ -262,18 +262,18 @@
         }
 
         .step-body {
-            font-size: 13px;
-            color: #8b8fa3;
+            font-size: 14px;
+            color: #888;
             padding-left: 34px;
         }
 
         .step-body code {
-            background: #252838;
+            background: #1a1a1a;
             padding: 2px 7px;
             border-radius: 6px;
             font-size: 12px;
             font-family: 'SF Mono', 'Fira Code', monospace;
-            color: #c4b5fd;
+            color: #ccc;
         }
 
         /* --- Confidence Bar --- */
@@ -283,7 +283,7 @@
 
         .confidence-bar-track {
             height: 8px;
-            background: #252838;
+            background: #1a1a1a;
             border-radius: 4px;
             overflow: hidden;
             margin-bottom: 12px;
@@ -309,7 +309,7 @@
         .adjustment {
             font-size: 12px;
             font-family: 'SF Mono', 'Fira Code', monospace;
-            color: #8b8fa3;
+            color: #777;
         }
 
         .adjustment.positive { color: #34d399; }
@@ -320,7 +320,7 @@
             display: inline-block;
             padding: 6px 14px;
             border-radius: 8px;
-            font-size: 13px;
+            font-size: 14px;
             font-weight: 600;
             margin-top: 4px;
         }
@@ -345,14 +345,14 @@
 
         /* --- Reply Card --- */
         .reply-card {
-            background: #1c2033;
+            background: #141414;
             border-radius: 12px;
             padding: 16px 18px;
             margin-top: 8px;
-            font-size: 14px;
-            color: #c8cad4;
+            font-size: 15px;
+            color: #ccc;
             line-height: 1.7;
-            border-left: 3px solid #818cf8;
+            border-left: 3px solid #444;
         }
 
         /* --- Loading --- */
@@ -364,7 +364,7 @@
         .loading-dots span {
             width: 6px;
             height: 6px;
-            background: #818cf8;
+            background: #fff;
             border-radius: 50%;
             animation: bounce 1.2s infinite;
         }
@@ -387,17 +387,17 @@
 
         .meta-item {
             font-size: 12px;
-            color: #6c7086;
+            color: #666;
         }
 
         .meta-item strong {
-            color: #8b8fa3;
+            color: #999;
         }
 
         /* --- Error --- */
         .error-box {
-            background: #2d0a0a;
-            border: 1px solid #5c1414;
+            background: #1a0000;
+            border: 1px solid #330000;
             border-radius: 12px;
             padding: 16px 20px;
             color: #f87171;
@@ -422,7 +422,7 @@
             <div class="section-label">Test Scenarios</div>
         </div>
 
-        <div id="scenarioList"></div>
+        <div id="scenarioList" style="display: flex; flex-direction: column; gap: 10px;"></div>
 
         <div class="custom-input-area">
             <div class="section-label">Custom Message</div>
