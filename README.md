@@ -35,6 +35,12 @@ That's what this project does.
 7. **Action Router** — Maps final score to `auto_send` (>0.85), `agent_review` (0.60–0.85), or `escalate` (<0.60). Complaints always escalate.
 8. **Response** — Returns message_id, query_type, drafted_reply, confidence_score, action, and full breakdown
 
+### Data Flow
+
+<p align="center">
+  <img src="docs/The Full Pipeline_ An In-Depth Overview.png" alt="Data Flow in AI-Powered Communication System" width="600"/>
+</p>
+
 ---
 
 ## The Journey — What I Built, Broke, and Rebuilt

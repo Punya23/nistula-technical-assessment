@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nistula Pipeline Demo</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background: #0f1117;
+            color: #e1e4ea;
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+
+        /* --- Header --- */
+        .header {
+            padding: 24px 40px;
+            border-bottom: 1px solid #1e2130;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .header h1 {
+            font-size: 18px;
+            font-weight: 600;
+            letter-spacing: -0.3px;
+        }
+
+        .header h1 span {
+            color: #6c7086;
+            font-weight: 400;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            background: #34d399;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 8px;
+        }
+
+        .status-dot.offline {
+            background: #f87171;
+        }
+
+        .header-status {
+            font-size: 13px;
+            color: #6c7086;
+            display: flex;
+            align-items: center;
+        }
+
+        /* --- Layout --- */
+        .container {
+            display: grid;
+            grid-template-columns: 360px 1fr;
+            height: calc(100vh - 73px);
+        }
+
+        /* --- Left Panel --- */
+        .left-panel {
+            border-right: 1px solid #1e2130;
+            padding: 24px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .section-label {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #6c7086;
+            margin-bottom: 4px;
+        }
+
+        .scenario-card {
+            background: #181a24;
+            border: 1px solid #1e2130;
+            border-radius: 12px;
+            padding: 14px 16px;
+            cursor: pointer;
+            transition: border-color 0.2s, background 0.2s;
+        }
+
+        .scenario-card:hover {
+            border-color: #3b3f54;
+            background: #1c1f2e;
+        }
+
+        .scenario-card.active {
+            border-color: #818cf8;
+            background: #1c1f2e;
+        }
+
+        .scenario-card .name {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 2px;
+        }
+
+        .scenario-card .channel {
+            font-size: 11px;
+            font-weight: 500;
+            color: #818cf8;
+            margin-bottom: 6px;
+        }
+
+        .scenario-card .preview {
+            font-size: 13px;
+            color: #8b8fa3;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        /* --- Custom Input --- */
+        .custom-input-area {
+            margin-top: auto;
+        }
+
+        .custom-input-area textarea {
+            width: 100%;
+            background: #181a24;
+            border: 1px solid #1e2130;
+            border-radius: 12px;
+            color: #e1e4ea;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            font-size: 13px;
+            padding: 14px 16px;
+            resize: none;
+            height: 80px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .custom-input-area textarea:focus {
+            border-color: #818cf8;
+        }
+
+        .custom-input-area textarea::placeholder {
+            color: #4a4e63;
+        }
+
+        .send-btn {
+            width: 100%;
+            margin-top: 10px;
+            padding: 12px;
+            background: #818cf8;
+            color: #fff;
+            border: none;
+            border-radius: 10px;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+
+        .send-btn:hover {
+            opacity: 0.9;
+        }
+
+        .send-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        /* --- Right Panel --- */
+        .right-panel {
+            padding: 32px 40px;
+            overflow-y: auto;
+        }
+
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: #4a4e63;
+            text-align: center;
+        }
+
+        .empty-state .icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+
+        .empty-state p {
+            font-size: 14px;
+            max-width: 280px;
+        }
+
+        /* --- Pipeline Steps --- */
+        .pipeline {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .pipeline-step {
+            background: #181a24;
+            border: 1px solid #1e2130;
+            border-radius: 14px;
+            padding: 18px 20px;
+            opacity: 0;
+            transform: translateY(8px);
+            transition: opacity 0.3s, transform 0.3s;
+        }
+
+        .pipeline-step.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .step-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 8px;
+        }
+
+        .step-number {
+            width: 24px;
+            height: 24px;
+            border-radius: 8px;
+            background: #252838;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 700;
+            color: #818cf8;
+            flex-shrink: 0;
+        }
+
+        .step-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: #e1e4ea;
+        }
+
+        .step-status {
+            margin-left: auto;
+            font-size: 12px;
+            font-weight: 500;
+            color: #34d399;
+        }
+
+        .step-body {
+            font-size: 13px;
+            color: #8b8fa3;
+            padding-left: 34px;
+        }
+
+        .step-body code {
+            background: #252838;
+            padding: 2px 7px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-family: 'SF Mono', 'Fira Code', monospace;
+            color: #c4b5fd;
+        }
+
+        /* --- Confidence Bar --- */
+        .confidence-container {
+            margin-top: 10px;
+        }
+
+        .confidence-bar-track {
+            height: 8px;
+            background: #252838;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 12px;
+        }
+
+        .confidence-bar-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.6s ease-out;
+            width: 0%;
+        }
+
+        .confidence-bar-fill.high { background: #34d399; }
+        .confidence-bar-fill.medium { background: #fbbf24; }
+        .confidence-bar-fill.low { background: #f87171; }
+
+        .adjustments {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .adjustment {
+            font-size: 12px;
+            font-family: 'SF Mono', 'Fira Code', monospace;
+            color: #8b8fa3;
+        }
+
+        .adjustment.positive { color: #34d399; }
+        .adjustment.negative { color: #f87171; }
+
+        /* --- Action Badge --- */
+        .action-badge {
+            display: inline-block;
+            padding: 6px 14px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            margin-top: 4px;
+        }
+
+        .action-badge.auto_send {
+            background: #052e1c;
+            color: #34d399;
+            border: 1px solid #065f38;
+        }
+
+        .action-badge.agent_review {
+            background: #2d2305;
+            color: #fbbf24;
+            border: 1px solid #5c4a0a;
+        }
+
+        .action-badge.escalate {
+            background: #2d0a0a;
+            color: #f87171;
+            border: 1px solid #5c1414;
+        }
+
+        /* --- Reply Card --- */
+        .reply-card {
+            background: #1c2033;
+            border-radius: 12px;
+            padding: 16px 18px;
+            margin-top: 8px;
+            font-size: 14px;
+            color: #c8cad4;
+            line-height: 1.7;
+            border-left: 3px solid #818cf8;
+        }
+
+        /* --- Loading --- */
+        .loading-dots {
+            display: inline-flex;
+            gap: 4px;
+        }
+
+        .loading-dots span {
+            width: 6px;
+            height: 6px;
+            background: #818cf8;
+            border-radius: 50%;
+            animation: bounce 1.2s infinite;
+        }
+
+        .loading-dots span:nth-child(2) { animation-delay: 0.2s; }
+        .loading-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+        @keyframes bounce {
+            0%, 80%, 100% { transform: scale(0.6); opacity: 0.3; }
+            40% { transform: scale(1); opacity: 1; }
+        }
+
+        /* --- Meta row --- */
+        .meta-row {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            margin-top: 6px;
+        }
+
+        .meta-item {
+            font-size: 12px;
+            color: #6c7086;
+        }
+
+        .meta-item strong {
+            color: #8b8fa3;
+        }
+
+        /* --- Error --- */
+        .error-box {
+            background: #2d0a0a;
+            border: 1px solid #5c1414;
+            border-radius: 12px;
+            padding: 16px 20px;
+            color: #f87171;
+            font-size: 13px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <h1>Nistula Pipeline Demo <span>— webhook testing harness</span></h1>
+    <div class="header-status">
+        <span class="status-dot" id="statusDot"></span>
+        <span id="statusText">Checking backend...</span>
+    </div>
+</div>
+
+<div class="container">
+    <!-- Left Panel -->
+    <div class="left-panel">
+        <div>
+            <div class="section-label">Test Scenarios</div>
+        </div>
+
+        <div id="scenarioList"></div>
+
+        <div class="custom-input-area">
+            <div class="section-label">Custom Message</div>
+            <textarea id="customMessage" placeholder="Type any guest message and see how the system handles it..."></textarea>
+            <button class="send-btn" id="sendBtn" onclick="sendCustomMessage()">Send to Pipeline</button>
+        </div>
+    </div>
+
+    <!-- Right Panel -->
+    <div class="right-panel" id="rightPanel">
+        <div class="empty-state" id="emptyState">
+            <div class="icon">←</div>
+            <p>Select a scenario or type a custom message to see the pipeline process it in real time.</p>
+        </div>
+
+        <div class="pipeline" id="pipeline" style="display: none;"></div>
+    </div>
+</div>
+
+<script>
+    const API_BASE = 'http://localhost:8000';
+
+    const SCENARIOS = [
+        {
+            name: 'Rahul Sharma',
+            channel: 'WhatsApp',
+            preview: 'Is the villa available from April 20 to 24? What is the rate for 2 adults?',
+            payload: {
+                source: 'whatsapp',
+                guest_name: 'Rahul Sharma',
+                message: 'Is the villa available from April 20 to 24? What is the rate for 2 adults?',
+                timestamp: new Date().toISOString(),
+                booking_ref: 'NIS-2024-0891',
+                property_id: 'villa-b1'
+            }
+        },
+        {
+            name: 'Priya Menon',
+            channel: 'Booking.com',
+            preview: 'What time can we check in tomorrow? Also, what is the WiFi password?',
+            payload: {
+                source: 'booking_com',
+                guest_name: 'Priya Menon',
+                message: 'What time can we check in tomorrow? Also, what is the WiFi password?',
+                timestamp: new Date().toISOString(),
+                booking_ref: 'NIS-2024-0925',
+                property_id: 'villa-b1'
+            }
+        },
+        {
+            name: 'Vikram Patel',
+            channel: 'WhatsApp · 3:00 AM',
+            preview: 'The AC is not working in the master bedroom. This is unacceptable. I want a refund for tonight.',
+            payload: {
+                source: 'whatsapp',
+                guest_name: 'Vikram Patel',
+                message: 'The AC is not working in the master bedroom. This is unacceptable. I want a refund for tonight.',
+                timestamp: '2026-05-07T03:00:00Z',
+                booking_ref: 'NIS-2024-0950',
+                property_id: 'villa-b1'
+            }
+        },
+        {
+            name: 'Sarah Johnson',
+            channel: 'Airbnb',
+            preview: 'Can we get an early check-in around 10 AM? Also, can you arrange an airport transfer from Dabolim?',
+            payload: {
+                source: 'airbnb',
+                guest_name: 'Sarah Johnson',
+                message: 'Can we get an early check-in around 10 AM? Also, can you arrange an airport transfer from Dabolim?',
+                timestamp: new Date().toISOString(),
+                booking_ref: 'NIS-2024-0960',
+                property_id: 'villa-b1'
+            }
+        },
+        {
+            name: 'Ankit Gupta',
+            channel: 'Instagram',
+            preview: 'Do you allow pets? We have a small dog.',
+            payload: {
+                source: 'instagram',
+                guest_name: 'Ankit Gupta',
+                message: 'Do you allow pets? We have a small dog.',
+                timestamp: new Date().toISOString(),
+                booking_ref: null,
+                property_id: 'villa-b1'
+            }
+        },
+        {
+            name: 'Meera Krishnan',
+            channel: 'Direct',
+            preview: 'How much would it cost for 5 guests for 3 nights in December?',
+            payload: {
+                source: 'direct',
+                guest_name: 'Meera Krishnan',
+                message: 'How much would it cost for 5 guests for 3 nights in December?',
+                timestamp: new Date().toISOString(),
+                property_id: 'villa-b1'
+            }
+        }
+    ];
+
+    // --- Render scenario cards ---
+    const scenarioList = document.getElementById('scenarioList');
+    SCENARIOS.forEach((s, i) => {
+        const card = document.createElement('div');
+        card.className = 'scenario-card';
+        card.id = `scenario-${i}`;
+        card.innerHTML = `
+            <div class="name">${s.name}</div>
+            <div class="channel">${s.channel}</div>
+            <div class="preview">${s.preview}</div>
+        `;
+        card.onclick = () => runScenario(i);
+        scenarioList.appendChild(card);
+    });
+
+    // --- Health check ---
+    async function checkHealth() {
+        const dot = document.getElementById('statusDot');
+        const text = document.getElementById('statusText');
+        try {
+            const res = await fetch(`${API_BASE}/health`);
+            if (res.ok) {
+                dot.classList.remove('offline');
+                text.textContent = 'Backend connected';
+            } else {
+                dot.classList.add('offline');
+                text.textContent = 'Backend error';
+            }
+        } catch {
+            dot.classList.add('offline');
+            text.textContent = 'Backend offline — start with: uvicorn app.main:app --reload';
+        }
+    }
+    checkHealth();
+    setInterval(checkHealth, 10000);
+
+    // --- Run a scenario ---
+    let isProcessing = false;
+
+    async function runScenario(index) {
+        if (isProcessing) return;
+        document.querySelectorAll('.scenario-card').forEach(c => c.classList.remove('active'));
+        document.getElementById(`scenario-${index}`).classList.add('active');
+        await processMessage(SCENARIOS[index].payload);
+    }
+
+    async function sendCustomMessage() {
+        const text = document.getElementById('customMessage').value.trim();
+        if (!text || isProcessing) return;
+
+        const payload = {
+            source: 'direct',
+            guest_name: 'Demo User',
+            message: text,
+            timestamp: new Date().toISOString(),
+            property_id: 'villa-b1'
+        };
+
+        document.querySelectorAll('.scenario-card').forEach(c => c.classList.remove('active'));
+        await processMessage(payload);
+    }
+
+    async function processMessage(payload) {
+        isProcessing = true;
+        document.getElementById('sendBtn').disabled = true;
+
+        const pipeline = document.getElementById('pipeline');
+        const emptyState = document.getElementById('emptyState');
+        emptyState.style.display = 'none';
+        pipeline.style.display = 'flex';
+        pipeline.innerHTML = '';
+
+        // Step 1: Show the inbound message
+        addStep(pipeline, '1', 'Inbound Message', 'received', `
+            <div class="meta-row">
+                <div class="meta-item"><strong>Source:</strong> ${payload.source}</div>
+                <div class="meta-item"><strong>Guest:</strong> ${payload.guest_name}</div>
+                ${payload.booking_ref ? `<div class="meta-item"><strong>Ref:</strong> ${payload.booking_ref}</div>` : ''}
+            </div>
+            <div style="margin-top: 8px; color: #c8cad4;">"${payload.message}"</div>
+        `);
+
+        await wait(300);
+
+        // Step 2: Validation
+        addStep(pipeline, '2', 'Validation', 'checking', `
+            <div class="loading-dots"><span></span><span></span><span></span></div>
+        `);
+
+        await wait(400);
+
+        // Send actual request
+        try {
+            const res = await fetch(`${API_BASE}/webhook/message`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (!res.ok) {
+                const err = await res.json();
+                updateLastStep(pipeline, '2', 'Validation', 'failed', `
+                    <div class="error-box">${err.detail ? JSON.stringify(err.detail, null, 2) : 'Validation failed'}</div>
+                `);
+                isProcessing = false;
+                document.getElementById('sendBtn').disabled = false;
+                return;
+            }
+
+            const data = await res.json();
+
+            // Update Step 2 — Validation passed
+            updateLastStep(pipeline, '2', 'Validation', 'passed', `
+                Payload schema valid — all required fields present
+            `);
+
+            await wait(300);
+
+            // Step 3: Normalisation
+            addStep(pipeline, '3', 'Normalisation', 'done', `
+                Message assigned ID <code>${data.message_id.slice(0, 8)}…</code> and mapped to unified schema
+            `);
+
+            await wait(300);
+
+            // Step 4: Classification
+            addStep(pipeline, '4', 'Classification', 'done', `
+                Query type: <code>${data.query_type}</code>
+            `);
+
+            await wait(300);
+
+            // Step 5: AI Draft
+            const isFallback = data.confidence_breakdown?.ai_factors?.fallback;
+            addStep(pipeline, '5', 'AI Draft' + (isFallback ? ' (fallback)' : ''), 'done', `
+                <div class="reply-card">${data.drafted_reply}</div>
+                ${isFallback ? '<div style="margin-top: 8px; font-size: 12px; color: #fbbf24;">⚠ Claude API unavailable — fallback reply used</div>' : ''}
+            `);
+
+            await wait(400);
+
+            // Step 6: Confidence Scoring
+            const score = data.confidence_score;
+            const breakdown = data.confidence_breakdown || {};
+            const adjustments = breakdown.adjustments || [];
+
+            let barClass = 'high';
+            if (score < 0.6) barClass = 'low';
+            else if (score <= 0.85) barClass = 'medium';
+
+            let adjHTML = adjustments.map(a => {
+                const isPos = a.includes('+');
+                const isNeg = a.includes('-') || a.includes('cap');
+                return `<div class="adjustment ${isPos ? 'positive' : ''} ${isNeg ? 'negative' : ''}">${a}</div>`;
+            }).join('');
+
+            addStep(pipeline, '6', 'Confidence Scoring', 'done', `
+                <div class="confidence-container">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                        <span style="font-size: 12px; color: #6c7086;">Base: 0.50</span>
+                        <span style="font-size: 16px; font-weight: 700; color: #e1e4ea;">${score}</span>
+                    </div>
+                    <div class="confidence-bar-track">
+                        <div class="confidence-bar-fill ${barClass}" id="confBar"></div>
+                    </div>
+                    <div class="adjustments">${adjHTML}</div>
+                </div>
+            `);
+
+            // Animate bar after render
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    document.getElementById('confBar').style.width = `${score * 100}%`;
+                });
+            });
+
+            await wait(400);
+
+            // Step 7: Action
+            const action = data.action;
+            const actionLabels = {
+                auto_send: 'Auto Send — reply sent without human review',
+                agent_review: 'Agent Review — reply shown to agent for approval',
+                escalate: 'Escalate — routed to human agent immediately'
+            };
+
+            addStep(pipeline, '7', 'Action Decision', 'done', `
+                <span class="action-badge ${action}">${action.replace('_', ' ').toUpperCase()}</span>
+                <div style="margin-top: 8px; font-size: 13px; color: #8b8fa3;">${actionLabels[action] || action}</div>
+            `);
+
+        } catch (err) {
+            updateLastStep(pipeline, '2', 'Validation', 'error', `
+                <div class="error-box">Could not reach backend. Is the server running?<br><code>uvicorn app.main:app --reload</code></div>
+            `);
+        }
+
+        isProcessing = false;
+        document.getElementById('sendBtn').disabled = false;
+    }
+
+    // --- Helpers ---
+    function addStep(container, num, title, status, bodyHTML) {
+        const el = document.createElement('div');
+        el.className = 'pipeline-step';
+        el.innerHTML = `
+            <div class="step-header">
+                <div class="step-number">${num}</div>
+                <div class="step-title">${title}</div>
+                <div class="step-status">${status === 'done' || status === 'passed' ? '✓' : status === 'failed' || status === 'error' ? '✗' : ''}</div>
+            </div>
+            <div class="step-body">${bodyHTML}</div>
+        `;
+        container.appendChild(el);
+        requestAnimationFrame(() => el.classList.add('visible'));
+    }
+
+    function updateLastStep(container, num, title, status, bodyHTML) {
+        const steps = container.querySelectorAll('.pipeline-step');
+        const last = steps[steps.length - 1];
+        if (last) {
+            last.innerHTML = `
+                <div class="step-header">
+                    <div class="step-number">${num}</div>
+                    <div class="step-title">${title}</div>
+                    <div class="step-status">${status === 'done' || status === 'passed' ? '✓' : status === 'failed' || status === 'error' ? '✗' : ''}</div>
+                </div>
+                <div class="step-body">${bodyHTML}</div>
+            `;
+        }
+    }
+
+    function wait(ms) {
+        return new Promise(r => setTimeout(r, ms));
+    }
+
+    // Enter key sends custom message
+    document.getElementById('customMessage').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            sendCustomMessage();
+        }
+    });
+</script>
+
+</body>
+</html>

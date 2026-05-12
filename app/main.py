@@ -12,10 +12,12 @@ Endpoints:
 """
 
 import logging
+from pathlib import Path
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from app.config import settings
 from app.models.webhook import WebhookPayload
@@ -194,7 +196,11 @@ async def process_message(payload: WebhookPayload):
         )
 
 
-# --- Run with uvicorn ---
+# --- Demo UI + Run with uvicorn ---
+demo_dir = Path(__file__).resolve().parent.parent / "demo"
+if demo_dir.exists():
+    app.mount("/demo", StaticFiles(directory=str(demo_dir), html=True), name="demo")
+
 if __name__ == "__main__":
     import uvicorn
 
