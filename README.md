@@ -374,6 +374,26 @@ If this were going into production at Nistula:
 
 ---
 
+## Part 3 — The 3 AM Scenario (Thinking Questions)
+
+*Full answers in [thinking.md](thinking.md) — here's the summary:*
+
+**Question A — What should the AI reply at 3 AM?**
+
+> *"Vikram, I'm so sorry about the hot water issue — that's not the experience we want for you. I've flagged this as urgent and our team is on it right now. Someone will contact you within the next 30 minutes to resolve this. Your comfort is our priority, and we'll absolutely discuss tonight's stay once we've sorted this out."*
+
+Why this wording: acknowledge the frustration immediately, don't argue about the refund, commit to a concrete timeline (30 minutes), and defer the refund conversation to when emotions are calmer.
+
+**Question B — What should the system do beyond sending a message?**
+
+Trigger a P1 escalation: SMS the on-call manager, push notification to the ops app, log the incident with severity + timestamps, and start a 30-minute auto-follow-up timer. If no human responds within 30 minutes, the system sends a second message to the guest and escalates to the property owner.
+
+**Question C — Third hot water complaint in two months — what now?**
+
+This is a maintenance pattern, not a coincidence. Build a recurring-issue detector that groups complaints by property + category. Three complaints about the same system triggers a preventive maintenance order — inspect the water heater before the next guest checks in. The cheapest complaint is the one that never happens.
+
+---
+
 ## About Nistula
 
 [Nistula](https://nistula.life) (निस्तुला — "incomparable") is a hospitality startup in Assagao, North Goa, built by a group of startup founders and entrepreneurs who moved to Goa post-COVID looking for a different way to live and work.
