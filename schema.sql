@@ -1,17 +1,7 @@
--- ============================================================
+
 -- NISTULA UNIFIED MESSAGING PLATFORM — DATABASE SCHEMA
--- ============================================================
+
 -- PostgreSQL 15+
--- Part 2 of the Nistula Technical Assessment
---
--- Design principles:
---   1. One canonical guest record, regardless of channel
---   2. All messages in a single table for unified search
---   3. Conversations grouped by guest + reservation
---   4. AI metadata stored directly on messages (no separate table)
---   5. Simple, pragmatic — easy to extend as the platform grows
---
--- Initial design note:
 --   I originally separated AI response data into its own table
 --   (ai_responses) and built a guest_channel_identifiers table for
 --   cross-channel identity resolution. During review, I simplified:
@@ -22,7 +12,6 @@
 --   The separate tables would make sense at scale (multi-model A/B
 --   testing, identity graphs), but for a startup MVP they add
 --   complexity without immediate value.
--- ============================================================
 
 
 -- ============================================================
@@ -190,46 +179,6 @@ CREATE INDEX idx_messages_ai_drafted ON messages (ai_drafted) WHERE ai_drafted =
 -- Full-text search on message content
 CREATE INDEX idx_messages_fts ON messages USING gin(to_tsvector('english', message_text));
 
-
--- ============================================================
--- DESIGN DECISIONS
--- ============================================================
---
--- 1. SINGLE MESSAGES TABLE (inbound + outbound)
---    A single table with a `direction` column keeps the conversation
---    timeline in one place and enables unified full-text search.
---    The `sender_type` field distinguishes guest/AI/agent messages.
---
--- 2. AI FIELDS ON MESSAGES, NOT A SEPARATE TABLE
---    I initially created a separate ai_responses table with columns
---    for token usage, response time, model versioning, and draft history.
---    I simplified because: at this stage, there's one AI draft per
---    inbound message. A separate table adds a JOIN to every dashboard
---    query without immediate benefit. The AI columns are nullable,
---    so non-AI messages carry zero overhead. When Nistula needs
---    multi-model A/B testing or draft versioning, a separate table
---    makes sense — but that's a future problem.
---
--- 3. GUEST DEDUPLICATION VIA EMAIL/PHONE
---    Guests are matched across channels using email or phone as unique
---    keys. I considered a separate guest_channel_identifiers table for
---    channel-specific IDs (WhatsApp number, Booking.com guest ID, etc.)
---    but simplified to a single primary_channel + external_channel_id
---    on the guests table. This handles the common case (one guest,
---    one primary channel) without the complexity of an identity
---    resolution system. If a guest contacts from a second channel,
---    we match on email/phone and update the record.
---
--- 4. JSONB FOR METADATA
---    Channel-specific data varies widely (WhatsApp has message IDs,
---    Booking.com has reservation numbers). JSONB handles this without
---    schema changes per channel.
---
--- 5. CONVERSATIONS AS A GROUPING LAYER
---    A guest may have multiple conversations about the same property
---    (pre-booking, during stay, post-checkout). The conversation
---    abstraction keeps the timeline clean and lets us assign different
---    agents to different threads.
 
 
 -- ============================================================
