@@ -29,7 +29,7 @@ class TestConfidenceScoring:
         """Confidence score must always be between 0 and 1."""
         msg = self._make_message()
         score, _, _ = calculate_confidence(
-            msg, 0.8, "Villa B1 is available!", {"base_rate_inr": 18000}
+            msg, 0.8, "Villa B1 is available for those dates!", {"availability": True}
         )
         assert 0 <= score <= 1
 
@@ -42,11 +42,11 @@ class TestConfidenceScoring:
         score, breakdown, action = calculate_confidence(
             msg, 0.9, "We apologise for the inconvenience.", {"base_rate_inr": 18000}
         )
-        assert score <= 0.60
+        assert score <= 0.55
         assert action == "escalate"
 
-    def test_missing_booking_ref_penalty(self):
-        """Post-sales without booking ref should have lower confidence."""
+    def test_booking_ref_boosts_score(self):
+        """Having a booking ref should increase confidence."""
         msg_with_ref = self._make_message(
             query_type="post_sales_checkin",
             message_text="What is the check-in time?",
@@ -58,25 +58,44 @@ class TestConfidenceScoring:
             booking_ref=None,
         )
         score_with, _, _ = calculate_confidence(
-            msg_with_ref, 0.8, "Check-in is at 2 PM.", {"check_in_time": "2:00 PM"}
+            msg_with_ref, 0.8, "Check-in is at 2 PM.",
+            {"check_in_time": "2:00 PM", "check_out_time": "11:00 AM", "wifi_password": "Nistula@2024"},
         )
         score_without, _, _ = calculate_confidence(
-            msg_without_ref, 0.8, "Check-in is at 2 PM.", {"check_in_time": "2:00 PM"}
+            msg_without_ref, 0.8, "Check-in is at 2 PM.",
+            {"check_in_time": "2:00 PM", "check_out_time": "11:00 AM", "wifi_password": "Nistula@2024"},
         )
-        assert score_without < score_with
+        assert score_with > score_without
 
     def test_breakdown_included(self):
-        """Confidence breakdown should contain all scoring factors."""
+        """Confidence breakdown should contain scoring details."""
         msg = self._make_message()
         _, breakdown, _ = calculate_confidence(
-            msg, 0.8, "Villa B1 is available!", {"base_rate_inr": 18000}
+            msg, 0.8, "Villa B1 is available!", {"availability": True}
         )
-        assert "classification_confidence" in breakdown
-        assert "context_coverage" in breakdown
-        assert "sentiment_clarity" in breakdown
-        assert "response_specificity" in breakdown
+        assert "base_score" in breakdown
+        assert "adjustments" in breakdown
         assert "final_score" in breakdown
         assert "action" in breakdown
+        assert breakdown["base_score"] == 0.50
+
+    def test_multiple_questions_reduce_score(self):
+        """Messages with multiple questions should score lower."""
+        msg_single = self._make_message(
+            message_text="Is the villa available?",
+        )
+        msg_multi = self._make_message(
+            message_text="Is the villa available? What is the rate? Can we check in early?",
+        )
+        score_single, _, _ = calculate_confidence(
+            msg_single, 0.8, "Yes it is available!",
+            {"availability": True},
+        )
+        score_multi, _, _ = calculate_confidence(
+            msg_multi, 0.8, "Yes it is available and the rate is...",
+            {"availability": True},
+        )
+        assert score_multi < score_single
 
 
 class TestDetermineAction:

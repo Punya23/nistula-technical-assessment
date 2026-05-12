@@ -5,69 +5,60 @@
 -- Part 2 of the Nistula Technical Assessment
 --
 -- Design principles:
---   1. One canonical guest record, regardless of how many channels they use
---   2. All messages (inbound + outbound) in a single table for unified search
---   3. Conversations as logical groupings, not physical separations
---   4. Full AI audit trail — every draft, edit, and send is tracked
---   5. Soft deletes everywhere — hospitality data has legal retention requirements
+--   1. One canonical guest record, regardless of channel
+--   2. All messages in a single table for unified search
+--   3. Conversations grouped by guest + reservation
+--   4. AI metadata stored directly on messages (no separate table)
+--   5. Simple, pragmatic — easy to extend as the platform grows
+--
+-- Initial design note:
+--   I originally separated AI response data into its own table
+--   (ai_responses) and built a guest_channel_identifiers table for
+--   cross-channel identity resolution. During review, I simplified:
+--   - AI fields merged into messages — every message can optionally
+--     carry AI metadata without a JOIN. Simpler queries, fewer tables.
+--   - Channel identifiers moved to guests table — for this scope,
+--     a channel + external_id on the guest record is enough.
+--   The separate tables would make sense at scale (multi-model A/B
+--   testing, identity graphs), but for a startup MVP they add
+--   complexity without immediate value.
 -- ============================================================
 
 
 -- ============================================================
--- 1. GUEST PROFILES
+-- 1. GUESTS
 -- ============================================================
 -- One record per guest, deduplicated across all channels.
--- A guest who messages via WhatsApp and Booking.com is ONE guest.
--- Channel-specific identifiers are stored in guest_channel_identifiers.
+-- A guest who messages via WhatsApp and Booking.com is ONE guest,
+-- matched by email or phone.
 
 CREATE TABLE guests (
     id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     full_name       VARCHAR(200) NOT NULL,
-    email           VARCHAR(255),                   -- May be null (WhatsApp-only guests)
-    phone           VARCHAR(30),                    -- E.164 format preferred
-    preferred_lang  VARCHAR(10) DEFAULT 'en',       -- ISO 639-1 language code
-    notes           TEXT,                            -- Internal notes about this guest
+    email           VARCHAR(255),                    -- May be null (WhatsApp-only guests)
+    phone           VARCHAR(30),                     -- E.164 format preferred
+    primary_channel VARCHAR(30),                     -- whatsapp, booking_com, airbnb, etc.
+    external_channel_id VARCHAR(255),                -- Channel-specific guest identifier
+    preferred_lang  VARCHAR(10) DEFAULT 'en',        -- ISO 639-1 language code
+    notes           TEXT,                             -- Internal notes about this guest
     created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 
-    -- Deduplication: email OR phone must be present
-    -- This allows matching across channels
+    -- At least one contact method must exist for deduplication
     CONSTRAINT guest_has_contact CHECK (email IS NOT NULL OR phone IS NOT NULL)
 );
 
--- Indexes for fast lookup during deduplication
+-- Fast lookup for deduplication
 CREATE UNIQUE INDEX idx_guests_email ON guests (email) WHERE email IS NOT NULL;
 CREATE UNIQUE INDEX idx_guests_phone ON guests (phone) WHERE phone IS NOT NULL;
 CREATE INDEX idx_guests_name ON guests (full_name);
 
 
 -- ============================================================
--- 2. GUEST CHANNEL IDENTIFIERS
+-- 2. PROPERTIES
 -- ============================================================
--- Maps channel-specific IDs to canonical guest records.
--- A guest might be "+91-98765-43210" on WhatsApp but "rahul.sharma@gmail.com"
--- on Booking.com — both link to the same guest record.
-
-CREATE TABLE guest_channel_identifiers (
-    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    guest_id        UUID NOT NULL REFERENCES guests(id) ON DELETE CASCADE,
-    channel         VARCHAR(30) NOT NULL,            -- whatsapp, booking_com, airbnb, instagram, direct
-    channel_user_id VARCHAR(255) NOT NULL,            -- Channel-specific identifier
-    display_name    VARCHAR(200),                     -- Name as shown on that channel
-    created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-
-    -- A channel user ID should only map to one guest
-    CONSTRAINT uq_channel_user UNIQUE (channel, channel_user_id)
-);
-
-CREATE INDEX idx_channel_lookup ON guest_channel_identifiers (channel, channel_user_id);
-
-
--- ============================================================
--- 3. PROPERTIES
--- ============================================================
--- Property catalog. In production, this would be much richer.
--- Kept minimal here as the focus is on the messaging schema.
+-- Property catalog. Kept minimal — in production this would be
+-- much richer with amenities, photos, pricing rules, etc.
 
 CREATE TABLE properties (
     id              VARCHAR(50) PRIMARY KEY,          -- e.g., "villa-b1"
@@ -85,10 +76,10 @@ CREATE TABLE properties (
 
 
 -- ============================================================
--- 4. RESERVATIONS
+-- 3. RESERVATIONS
 -- ============================================================
 -- Bookings linking guests to properties for specific dates.
--- One guest can have multiple reservations (repeat guests are common).
+-- One guest can have multiple reservations (repeat guests).
 
 CREATE TABLE reservations (
     id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -111,46 +102,48 @@ CREATE TABLE reservations (
 CREATE INDEX idx_reservations_guest ON reservations (guest_id);
 CREATE INDEX idx_reservations_property ON reservations (property_id);
 CREATE INDEX idx_reservations_dates ON reservations (check_in_date, check_out_date);
-CREATE INDEX idx_reservations_status ON reservations (status);
 
 
 -- ============================================================
--- 5. CONVERSATIONS
+-- 4. CONVERSATIONS
 -- ============================================================
--- A conversation is a logical thread grouping messages between
--- a guest and the team about a specific topic/stay.
---
--- Why a separate table?
--- A guest may have multiple conversations (pre-booking, during stay,
--- post-checkout). Each conversation has its own lifecycle and can
--- be assigned to different agents.
+-- A conversation groups messages into a logical thread.
+-- One guest can have multiple conversations (pre-booking, during
+-- stay, post-checkout). Each can be assigned to a different agent.
 
 CREATE TABLE conversations (
     id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     guest_id        UUID NOT NULL REFERENCES guests(id),
     property_id     VARCHAR(50) REFERENCES properties(id),
-    reservation_id  UUID REFERENCES reservations(id), -- Null for pre-booking enquiries
-    channel         VARCHAR(30) NOT NULL,              -- Primary channel for this conversation
+    reservation_id  UUID REFERENCES reservations(id),  -- Null for pre-booking enquiries
+    channel         VARCHAR(30) NOT NULL,               -- Primary channel
     status          VARCHAR(30) NOT NULL DEFAULT 'open',
-                                                       -- open, waiting_on_guest, resolved, escalated
-    assigned_agent  VARCHAR(100),                       -- Agent handling this conversation
-    priority        VARCHAR(10) DEFAULT 'normal',       -- low, normal, high, urgent
+                                                        -- open, waiting_on_guest, resolved, escalated
+    assigned_agent  VARCHAR(100),                        -- Agent handling this conversation
+    priority        VARCHAR(10) DEFAULT 'normal',        -- low, normal, high, urgent
     created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    resolved_at     TIMESTAMPTZ                         -- When the conversation was closed
+    resolved_at     TIMESTAMPTZ
 );
 
 CREATE INDEX idx_conversations_guest ON conversations (guest_id);
 CREATE INDEX idx_conversations_status ON conversations (status);
-CREATE INDEX idx_conversations_priority ON conversations (priority);
 
 
 -- ============================================================
--- 6. MESSAGES
+-- 5. MESSAGES
 -- ============================================================
--- The core table. Every message — inbound from guests, outbound from AI
--- or agents — lives here. Single table design for unified search,
--- analytics, and audit trail.
+-- The core table. Every message — inbound and outbound — lives here.
+-- AI metadata is stored directly on the message row rather than in
+-- a separate table. This keeps queries simple: one SELECT gives you
+-- the message, its classification, the AI draft, and the confidence
+-- score without any JOINs.
+--
+-- Design decision: I initially created a separate ai_responses table
+-- to track AI drafts independently. I merged it back because:
+-- (a) For this scope, there's one AI draft per message — no versioning needed
+-- (b) Fewer tables = simpler queries for the agent dashboard
+-- (c) The AI fields are nullable, so non-AI messages carry no overhead
 
 CREATE TABLE messages (
     id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -159,7 +152,7 @@ CREATE TABLE messages (
 
     -- Content
     message_text    TEXT NOT NULL,
-    source_channel  VARCHAR(30) NOT NULL,              -- Channel this message was sent on
+    source_channel  VARCHAR(30) NOT NULL,
 
     -- Sender info
     sender_type     VARCHAR(20) NOT NULL,               -- 'guest', 'ai', 'agent'
@@ -167,6 +160,14 @@ CREATE TABLE messages (
 
     -- Classification (for inbound messages)
     query_type      VARCHAR(50),                        -- pre_sales_availability, complaint, etc.
+
+    -- AI draft metadata (nullable — only present for AI-generated messages)
+    ai_drafted      BOOLEAN DEFAULT FALSE,              -- Was this message drafted by AI?
+    ai_model        VARCHAR(100),                       -- e.g., "claude-sonnet-4-20250514"
+    confidence_score DECIMAL(3,2),                      -- 0.00 to 1.00
+    action_taken    VARCHAR(20),                        -- auto_send, agent_review, escalate
+    agent_edited    BOOLEAN DEFAULT FALSE,              -- Did an agent modify the AI draft?
+    original_draft  TEXT,                               -- Original AI text before agent edits
 
     -- Delivery tracking
     status          VARCHAR(20) NOT NULL DEFAULT 'received',
@@ -176,82 +177,18 @@ CREATE TABLE messages (
     read_at         TIMESTAMPTZ,
 
     -- Metadata
-    metadata        JSONB DEFAULT '{}',                 -- Channel-specific metadata, attachments, etc.
+    metadata        JSONB DEFAULT '{}',                 -- Channel-specific metadata
     created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE INDEX idx_messages_conversation ON messages (conversation_id, created_at);
-CREATE INDEX idx_messages_direction ON messages (direction);
 CREATE INDEX idx_messages_query_type ON messages (query_type);
 CREATE INDEX idx_messages_status ON messages (status);
 CREATE INDEX idx_messages_created ON messages (created_at DESC);
+CREATE INDEX idx_messages_ai_drafted ON messages (ai_drafted) WHERE ai_drafted = TRUE;
 
--- Full-text search on message content (for searching across all conversations)
+-- Full-text search on message content
 CREATE INDEX idx_messages_fts ON messages USING gin(to_tsvector('english', message_text));
-
-
--- ============================================================
--- 7. AI RESPONSES
--- ============================================================
--- Tracks every AI-generated draft: which model, what confidence,
--- whether it was edited by a human, and what ultimately got sent.
--- This is the audit trail that answers "what did the AI do?"
-
-CREATE TABLE ai_responses (
-    id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    message_id          UUID NOT NULL REFERENCES messages(id),
-    inbound_message_id  UUID NOT NULL REFERENCES messages(id),  -- The message this was a reply to
-
-    -- AI generation details
-    model_used          VARCHAR(100) NOT NULL,           -- e.g., "claude-sonnet-4-20250514"
-    prompt_tokens       INTEGER,                         -- Token usage tracking
-    completion_tokens   INTEGER,
-    response_time_ms    INTEGER,                         -- Latency tracking
-
-    -- Confidence scoring
-    confidence_score    FLOAT NOT NULL,                  -- 0.0 to 1.0
-    confidence_breakdown JSONB,                          -- Detailed scoring factors
-    query_type          VARCHAR(50) NOT NULL,            -- Classified query type
-
-    -- Human review tracking
-    action_taken        VARCHAR(20) NOT NULL,            -- auto_send, agent_review, escalate
-    was_edited          BOOLEAN DEFAULT FALSE,           -- Did an agent modify the draft?
-    edited_by           VARCHAR(100),                    -- Agent who edited
-    original_draft      TEXT,                            -- Original AI text (before edits)
-    final_text          TEXT NOT NULL,                   -- What was actually sent
-
-    -- Timestamps
-    drafted_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    reviewed_at         TIMESTAMPTZ,
-    sent_at             TIMESTAMPTZ
-);
-
-CREATE INDEX idx_ai_responses_message ON ai_responses (message_id);
-CREATE INDEX idx_ai_responses_confidence ON ai_responses (confidence_score);
-CREATE INDEX idx_ai_responses_action ON ai_responses (action_taken);
-CREATE INDEX idx_ai_responses_model ON ai_responses (model_used);
-
-
--- ============================================================
--- 8. ESCALATION LOG (Bonus)
--- ============================================================
--- Tracks when and why messages were escalated to humans.
--- Useful for identifying AI gaps and training data opportunities.
-
-CREATE TABLE escalation_log (
-    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    message_id      UUID NOT NULL REFERENCES messages(id),
-    conversation_id UUID NOT NULL REFERENCES conversations(id),
-    reason          VARCHAR(50) NOT NULL,               -- low_confidence, complaint, ai_error, manual
-    escalated_to    VARCHAR(100),                        -- Agent who received the escalation
-    resolved        BOOLEAN DEFAULT FALSE,
-    resolution_note TEXT,
-    created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    resolved_at     TIMESTAMPTZ
-);
-
-CREATE INDEX idx_escalations_conversation ON escalation_log (conversation_id);
-CREATE INDEX idx_escalations_resolved ON escalation_log (resolved);
 
 
 -- ============================================================
@@ -259,64 +196,68 @@ CREATE INDEX idx_escalations_resolved ON escalation_log (resolved);
 -- ============================================================
 --
 -- 1. SINGLE MESSAGES TABLE (inbound + outbound)
---    Considered separate tables for inbound vs outbound, but a single
---    table with a `direction` column makes queries simpler, enables
---    unified full-text search, and keeps the conversation timeline
---    in one place. The `sender_type` field distinguishes guest/AI/agent.
+--    A single table with a `direction` column keeps the conversation
+--    timeline in one place and enables unified full-text search.
+--    The `sender_type` field distinguishes guest/AI/agent messages.
 --
--- 2. GUEST DEDUPLICATION VIA CHANNEL IDENTIFIERS
---    This was the hardest design decision. A guest on WhatsApp and
---    Booking.com is often the same person, but they have different
---    identifiers. Rather than storing channel-specific IDs directly on
---    the guests table (which would mean nullable columns for each channel),
---    I used a separate `guest_channel_identifiers` table. This is more
---    normalised, handles unlimited channels without schema changes, and
---    makes the dedup logic explicit: match on email/phone first, then
---    link channel identifiers. The trade-off is an extra JOIN for lookups,
---    but this scales better as Nistula adds more channels.
+-- 2. AI FIELDS ON MESSAGES, NOT A SEPARATE TABLE
+--    I initially created a separate ai_responses table with columns
+--    for token usage, response time, model versioning, and draft history.
+--    I simplified because: at this stage, there's one AI draft per
+--    inbound message. A separate table adds a JOIN to every dashboard
+--    query without immediate benefit. The AI columns are nullable,
+--    so non-AI messages carry zero overhead. When Nistula needs
+--    multi-model A/B testing or draft versioning, a separate table
+--    makes sense — but that's a future problem.
 --
--- 3. AI RESPONSES AS A SEPARATE TABLE
---    AI metadata (model, tokens, confidence, edits) doesn't belong on
---    the messages table — it would bloat every row (most messages don't
---    have AI data). A separate table keeps messages lean and gives us
---    a clean audit trail for AI behaviour analysis and model evaluation.
+-- 3. GUEST DEDUPLICATION VIA EMAIL/PHONE
+--    Guests are matched across channels using email or phone as unique
+--    keys. I considered a separate guest_channel_identifiers table for
+--    channel-specific IDs (WhatsApp number, Booking.com guest ID, etc.)
+--    but simplified to a single primary_channel + external_channel_id
+--    on the guests table. This handles the common case (one guest,
+--    one primary channel) without the complexity of an identity
+--    resolution system. If a guest contacts from a second channel,
+--    we match on email/phone and update the record.
 --
--- 4. JSONB FOR METADATA AND CONFIDENCE BREAKDOWN
---    Channel-specific metadata varies widely (WhatsApp has message IDs,
---    Booking.com has reservation numbers, etc.). JSONB handles this without
---    schema changes per channel. Confidence breakdown is also JSONB because
---    the scoring formula may evolve — we don't want to migrate columns
---    every time we add a new confidence factor.
+-- 4. JSONB FOR METADATA
+--    Channel-specific data varies widely (WhatsApp has message IDs,
+--    Booking.com has reservation numbers). JSONB handles this without
+--    schema changes per channel.
 --
--- 5. SOFT STATE TRACKING
---    Messages have a `status` field tracking their lifecycle (received →
---    drafted → reviewed → sent). This enables dashboards showing "pending
---    review" counts and helps identify bottlenecks in the response pipeline.
+-- 5. CONVERSATIONS AS A GROUPING LAYER
+--    A guest may have multiple conversations about the same property
+--    (pre-booking, during stay, post-checkout). The conversation
+--    abstraction keeps the timeline clean and lets us assign different
+--    agents to different threads.
 
 
 -- ============================================================
 -- HARDEST DESIGN DECISION
 -- ============================================================
 --
--- The hardest decision was guest deduplication across channels.
+-- The hardest decision was where to store AI-generated draft metadata.
 --
--- In hospitality, the same guest frequently contacts through multiple
--- channels — they might discover a villa on Instagram, enquire on
--- WhatsApp, and eventually book through Booking.com. Without proper
--- deduplication, this creates three separate "guests" and fragments
--- their conversation history. An agent responding on WhatsApp wouldn't
--- see the Booking.com reservation details.
+-- Option A: A separate ai_responses table with full audit trail
+-- (model, tokens, latency, confidence breakdown, draft history).
+-- This is architecturally "correct" and supports future features
+-- like model comparison and A/B testing.
 --
--- I considered three approaches:
--- (a) Store all channel IDs as columns on the guests table — simple but
---     requires schema changes for every new channel.
--- (b) Use a single composite key (email+phone) — works until a guest
---     uses different emails on different platforms.
--- (c) A separate channel identifiers table with email/phone as the
---     dedup bridge — more complex but handles real-world messiness.
+-- Option B: AI fields directly on the messages table as nullable
+-- columns. Simpler queries, fewer JOINs, but mixes concerns.
 --
--- I chose (c) because Nistula is a growing startup that will inevitably
--- add new channels (Google Messages, Telegram, etc.). The extra JOIN
--- cost is negligible compared to the operational cost of duplicated
--- guest records. The `guest_channel_identifiers` table also serves as
--- a natural audit trail of where each guest has contacted from.
+-- I started with Option A — it felt more professional. But during
+-- implementation I realised that for an MVP, every agent dashboard
+-- query would need a JOIN just to show the confidence score next to
+-- the message. That's unnecessary complexity when there's exactly
+-- one AI draft per inbound message.
+--
+-- I chose Option B because Nistula is a startup. The schema should
+-- be as simple as possible while still capturing everything needed
+-- for operations (was this AI-drafted? was it edited? what was the
+-- confidence?). If the platform grows to need draft versioning or
+-- multi-model evaluation, migrating to a separate table is a
+-- straightforward ALTER + INSERT...SELECT — not a rewrite.
+--
+-- The lesson: optimise for the queries you'll run today, not the
+-- features you might build next year.
