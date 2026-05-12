@@ -43,6 +43,66 @@ That's what this project does.
 
 ---
 
+## Real-World Flow — What Happens When a Guest Messages
+
+To understand how this system works in production, here's what happens when a real guest sends a message:
+
+**3:02 AM — Vikram picks up his phone and sends a WhatsApp message to Nistula:**
+
+> *"The AC is not working in the master bedroom. This is unacceptable. I want a refund for tonight."*
+
+**3:02 AM — WhatsApp Business API pushes the message to our webhook:**
+
+WhatsApp automatically POSTs Vikram's message to `POST /webhook/message`. We don't poll or extract — every channel (WhatsApp, Booking.com, Airbnb, Instagram) pushes messages to us in real time via webhooks.
+
+**3:02 AM — Our pipeline processes it in ~3 seconds:**
+
+1. **Validate** — Payload schema checks pass
+2. **Normalise** — Strips channel-specific artifacts, assigns UUID, maps to unified schema
+3. **Classify** — Keyword matching detects "not working", "unacceptable", "refund" → `complaint`
+4. **AI Draft** — Claude generates an empathetic response using Villa B1's property context (caretaker hours, amenities, policies)
+5. **Confidence Score** — Starts at 0.50, gains +0.20 for clear keyword match, +0.10 for booking ref — but gets **capped at 0.55** because it's a complaint. Complaints should never be auto-sent.
+6. **Action** — Score 0.55 + complaint type → **ESCALATE**
+
+**3:02 AM — The system decides what happens next based on the action:**
+
+| Action | Behaviour |
+|--------|-----------|
+| `auto_send` (score > 0.85) | Reply is sent back to WhatsApp automatically. Guest sees it in 3 seconds. No human involved. |
+| `agent_review` (0.60–0.85) | Reply appears in the agent dashboard. Agent reads, optionally edits, clicks "Send". |
+| `escalate` (< 0.60 or complaint) | Reply goes to agent dashboard **AND** immediate alerts fire to management. |
+
+**3:02 AM — For Vikram's complaint, escalation alerts fire in parallel:**
+
+- SMS to on-call manager: *"URGENT: AC complaint at Villa B1, Guest: Vikram Patel"*
+- Push notification to the Nistula ops app
+- Slack message to #urgent-ops channel
+- Email to the Villa B1 caretaker
+
+**3:02 AM — The drafted reply is sent back to Vikram on WhatsApp:**
+
+The system calls the WhatsApp Business API to post the reply back to the same chat thread. Vikram sees a response within seconds — he doesn't know AI was involved. It reads like a human replied at 3 AM.
+
+**What gets stored (using our schema.sql):**
+
+The original message, the AI draft, the confidence score (0.55), the action taken (escalate), whether the agent edited the reply, and the resolution timeline — all linked to Vikram's guest profile and his booking `NIS-2024-0950`.
+
+**What we built vs. what production adds:**
+
+| Layer | This Assessment | Production Adds |
+|-------|----------------|-----------------|
+| Receive messages | ✅ Webhook endpoint | Channel-specific adapters (~50 lines each) |
+| Process & classify | ✅ Full pipeline | Same |
+| Draft AI replies | ✅ Claude + fallbacks | Same |
+| Score & route | ✅ Confidence + action | Same |
+| Send reply back | Returns JSON | POST to WhatsApp/Booking.com API |
+| Alert management | Action field in response | SMS/Slack/email notification service |
+| Store everything | Schema designed | Connect PostgreSQL with SQLAlchemy |
+
+The pipeline we built is the decision engine — the hard part. The channel adapters and notification services are thin integration layers that carry messages in and replies out.
+
+---
+
 ## The Journey — What I Built, Broke, and Rebuilt
 
 Building this wasn't a straight line. Here's what actually happened.
