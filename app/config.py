@@ -1,7 +1,14 @@
 """App config — loads from .env file using Pydantic BaseSettings."""
 
+from pathlib import Path
+from dotenv import load_dotenv
 from pydantic_settings import BaseSettings
 from pydantic import Field
+
+# Load .env before Pydantic reads environment — ensures .env values
+# override empty shell variables (common issue with ANTHROPIC_API_KEY)
+_env_path = Path(__file__).resolve().parent.parent / ".env"
+load_dotenv(_env_path, override=True)
 
 
 class Settings(BaseSettings):
@@ -45,3 +52,4 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+
