@@ -29,7 +29,7 @@ That's what this project does.
 1. **Entry Point** — `POST /webhook/message` receives JSON from any channel
 2. **Validation** — Pydantic checks source, guest_name, message, timestamp → 422 if invalid
 3. **Normaliser** — Generates UUID, strips channel artifacts (e.g. Booking.com prefixes), unifies schema
-4. **Classifier** — Rule-based keyword matching across 5 priority-ordered categories (100+ keywords) → outputs query type + classification confidence
+4. **Classifier** — Rule-based keyword matching across 5 priority-ordered categories → outputs query type + classification confidence. Complaints are checked first so a message like "WiFi not working, I want a refund" is classified as a complaint, not a check-in query.
 5. **AI Drafter** — Sends unified message + full property context to Claude API → handles timeouts, errors, and bad JSON with per-type fallback replies
 6. **Confidence Scorer** — Additive model starting at 0.50, adjusts based on keyword match, booking ref, context coverage, reply quality, multi-question penalty, complaint cap
 7. **Action Router** — Maps final score to `auto_send` (>0.85), `agent_review` (0.60–0.85), or `escalate` (<0.60). Complaints always escalate.
@@ -285,29 +285,27 @@ Interactive Swagger UI — test payloads directly in the browser.
 
 ---
 
-## Testing — What We Covered and What We Didn't
-
-### What's tested (41 tests passing)
+## Testing
 
 ```bash
-pytest tests/ -v
+pytest tests/ -v   # 41 tests passing
 ```
 
-- **Classification accuracy** — All 6 query types correctly identified from keyword patterns
-- **Confidence scoring** — Base score, each adjustment rule, complaint capping, multi-question penalty
-- **Normalisation** — UUID generation, Booking.com prefix stripping, whitespace handling
-- **Webhook integration** — Full pipeline from payload to response
+Key coverage areas:
+
+- **Classification edge cases** — All 6 query types, including messages that match multiple categories (complaint takes priority)
+- **Complaint escalation** — Confidence capping at 0.55, action always set to escalate
+- **Fallback paths** — What the system returns when Claude is unavailable
+- **Confidence scoring** — Base score, each adjustment rule, multi-question penalty, boundary thresholds
 - **Validation** — Missing fields → 422, invalid channels → 422, empty messages → 422
-- **Edge cases** — Optional fields missing, boundary thresholds (0.85, 0.60)
+- **Normalisation** — UUID generation, Booking.com prefix stripping, whitespace handling
 
-### What's NOT tested (honest gaps)
+### What's NOT tested
 
-- **Real Claude API responses** — Tests use fallback replies to avoid API calls in CI. In production, you'd want integration tests that hit the actual API with a test key.
-- **Concurrent load** — Haven't load-tested with 100+ simultaneous messages. FastAPI handles async well, but the Claude API has rate limits that would need queuing.
-- **Multi-language messages** — A guest writing in Hindi or German would hit `general_enquiry` because keywords are English-only. Real system needs language detection.
-- **Adversarial inputs** — No testing for prompt injection, XSS in messages, or intentionally malformed payloads beyond Pydantic validation.
-
-These aren't bugs — they're scope decisions. For an MVP assessment, the 41 tests prove the pipeline works. For production, they'd be the first items on the backlog.
+- **Real Claude API responses** — Tests use fallback replies to avoid API calls in CI
+- **Concurrent load** — Claude API rate limits would need queuing at scale
+- **Multi-language messages** — Keywords are English-only; real system needs language detection
+- **Adversarial inputs** — No prompt injection or XSS testing beyond Pydantic validation
 
 ### Manual Testing
 
@@ -390,6 +388,16 @@ If this were going into production at Nistula:
 5. **Prompt feedback loop** — Track which AI drafts agents edit vs. send as-is. Use the edits to improve prompts over time. If agents keep changing the pricing format, the prompt should learn that.
 
 6. **Rate-limited queue** — Claude API has rate limits. At scale, queue messages through Redis/Celery instead of hitting the API synchronously per request.
+
+---
+
+## Known Limitations
+
+- **Rule-based classifier** — Keyword matching handles common queries well but may miss nuanced intent. A guest saying "we were expecting more" could be a complaint or feedback. A learned classifier would improve edge case accuracy.
+- **Static property context** — Property data is in-memory. In production, this would come from a database and update in real time (seasonal rates, maintenance status, availability changes).
+- **Stateless conversations** — Each message is processed independently. The system doesn't know that this guest asked about pricing yesterday and is now asking about availability — they're likely close to booking.
+- **Confidence model is heuristic** — The additive rules are explainable but not learned from data. With enough message history, a calibrated model could improve the auto_send threshold.
+- **Single property** — Currently hardcoded for Villa B1. Multi-property support needs property routing and per-property context loading.
 
 ---
 
