@@ -112,11 +112,13 @@ CREATE TABLE conversations (
     priority        VARCHAR(10) DEFAULT 'normal',        -- low, normal, high, urgent
     created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    resolved_at     TIMESTAMPTZ
+    resolved_at     TIMESTAMPTZ,
+    last_message_at TIMESTAMPTZ                          -- For dashboard inbox sorting by last activity
 );
 
 CREATE INDEX idx_conversations_guest ON conversations (guest_id);
 CREATE INDEX idx_conversations_status ON conversations (status);
+CREATE INDEX idx_conversations_last_msg ON conversations (last_message_at DESC NULLS LAST);
 
 
 -- ============================================================
@@ -210,3 +212,34 @@ CREATE INDEX idx_messages_fts ON messages USING gin(to_tsvector('english', messa
 --
 -- The lesson: optimise for the queries you'll run today, not the
 -- features you might build next year.
+
+
+-- ============================================================
+-- AUTO-UPDATE TRIGGERS
+-- ============================================================
+-- Without these, updated_at columns stay frozen at creation time.
+-- Every table with updated_at needs a trigger to keep it current.
+
+CREATE OR REPLACE FUNCTION update_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = NOW();
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER guests_updated_at
+    BEFORE UPDATE ON guests
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+
+CREATE TRIGGER properties_updated_at
+    BEFORE UPDATE ON properties
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+
+CREATE TRIGGER reservations_updated_at
+    BEFORE UPDATE ON reservations
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+
+CREATE TRIGGER conversations_updated_at
+    BEFORE UPDATE ON conversations
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at();

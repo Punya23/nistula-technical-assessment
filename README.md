@@ -204,7 +204,7 @@ Why Docker? A reviewer can spin up the project in one command without worrying a
 
 ### Interactive Demo
 
-After starting the server, open [localhost:8000/demo](http://localhost:8000/demo/) to test the pipeline visually. Click any pre-loaded guest scenario or type your own message — the UI shows each pipeline stage (validation → classification → AI draft → confidence scoring → action) in real time.
+After starting the server, open [localhost:8000/demo](http://localhost:8000/demo/) to test the pipeline visually. Click any pre-loaded guest scenario or type your own message — the UI shows each pipeline stage (validation → classification → AI draft → confidence scoring → action) in real time. Requires a running server with a valid API key in `.env`.
 
 ---
 
@@ -391,16 +391,6 @@ Trigger a P1 escalation: SMS the on-call manager, push notification to ops, auto
 **Question C — Third hot water complaint in two months — what now?**
 
 This is a maintenance pattern, not a coincidence. Build a recurring-issue detector that groups complaints by property + category. Three complaints triggers a preventive maintenance order, adds "verify hot water" to the pre-check-in checklist, and updates the AI context so it doesn't oversell. The goal: the fourth complaint never happens.
-
----
-
-## About Nistula
-
-[Nistula](https://nistula.life) (निस्तुला — "incomparable") is a hospitality startup in Assagao, North Goa.
-
-They run luxury private pool villas and apartments that combine the privacy of a home with five-star concierge services: in-house chefs, airport transfers, curated experiences. Guests book through WhatsApp, Booking.com, Airbnb, Instagram, and direct enquiries.
-
-This assessment builds the backend that would power their guest communication: understanding what each guest needs, drafting intelligent replies, and knowing when AI can handle it vs. when a human needs to step in.
 
 ---
 

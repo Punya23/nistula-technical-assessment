@@ -44,4 +44,4 @@ Three hot water complaints in two months at Villa B1 is a maintenance pattern, n
 
 4. **Update AI context**: If another hot water complaint comes in, the AI responds with: *"We're aware this has been an issue and our team has been working on a permanent fix."*
 
-The goal: build a system where the fourth complaint never happens.
+This converts a reactive complaint loop into a proactive maintenance cycle driven by data the platform already captures. The goal: build a system where the fourth complaint never happens.
