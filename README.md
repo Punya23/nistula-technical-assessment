@@ -380,17 +380,17 @@ If this were going into production at Nistula:
 
 **Question A — What should the AI reply at 3 AM?**
 
-> *"Vikram, I'm so sorry about the hot water issue — that's not the experience we want for you. I've flagged this as urgent and our team is on it right now. Someone will contact you within the next 30 minutes to resolve this. Your comfort is our priority, and we'll absolutely discuss tonight's stay once we've sorted this out."*
+> *"Hi Vikram, I'm truly sorry about the hot water issue — I completely understand how frustrating this is, especially with guests arriving in the morning. I've immediately alerted our maintenance team to get this fixed. Someone will reach out to you within the next 30 minutes. Regarding tonight's stay, I've flagged this with our team and they'll follow up with you directly."*
 
-Why this wording: acknowledge the frustration immediately, don't argue about the refund, commit to a concrete timeline (30 minutes), and defer the refund conversation to when emotions are calmer.
+Why this wording: acknowledge the frustration immediately, don't argue about the refund, commit to a concrete timeline (30 minutes), and defer financial decisions to a human.
 
 **Question B — What should the system do beyond sending a message?**
 
-Trigger a P1 escalation: SMS the on-call manager, push notification to the ops app, log the incident with severity and timestamps, and start a 30-minute auto-follow-up timer. If no human responds within 30 minutes, the system sends a second message to the guest and escalates to the property owner.
+Trigger a P1 escalation: SMS the on-call manager, push notification to ops, auto-generate an incident ticket, send the AI reply immediately, and start a 30-minute countdown. If no human responds, escalate further and send the guest a follow-up.
 
 **Question C — Third hot water complaint in two months — what now?**
 
-This is a maintenance pattern, not a coincidence. Build a recurring-issue detector that groups complaints by property + category. Three complaints about the same system triggers a preventive maintenance order — inspect the water heater before the next guest checks in. The cheapest complaint is the one that never happens.
+This is a maintenance pattern, not a coincidence. Build a recurring-issue detector that groups complaints by property + category. Three complaints triggers a preventive maintenance order, adds "verify hot water" to the pre-check-in checklist, and updates the AI context so it doesn't oversell. The goal: the fourth complaint never happens.
 
 ---
 

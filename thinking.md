@@ -8,42 +8,40 @@
 
 **The AI reply at 3am:**
 
-> Hi Vikram, I'm truly sorry about the hot water issue — I completely understand how frustrating this must be, especially with guests arriving in the morning. I've immediately alerted our maintenance team and your caretaker to get this fixed as soon as possible. Someone will reach out to you within the next 30 minutes with an update. Regarding the refund, I've flagged this with our team and they'll follow up with you directly once the situation is resolved. Please don't hesitate to call our emergency line if you need anything before then.
+> Hi Vikram, I'm truly sorry about the hot water issue — I completely understand how frustrating this is, especially with guests arriving in the morning. I've immediately alerted our maintenance team to get this fixed. Someone will reach out to you within the next 30 minutes. Regarding tonight's stay, I've flagged this with our team and they'll follow up with you directly. Please call our emergency line if you need anything before then.
 
-**Why this wording**: At 3am, a guest needs three things: acknowledgement that the problem is real, assurance that action is being taken *right now*, and a specific timeline (30 minutes, not "soon"). The refund request is acknowledged but deferred to a human — AI should never commit to financial decisions. The tone is empathetic without being defensive.
+**Why this wording**: At 3am, a guest needs three things: acknowledgement that the problem is real, assurance that action is happening *now*, and a specific timeline (30 minutes, not "soon"). The refund is acknowledged but deferred — AI should never commit to financial decisions.
 
 ---
 
 ## Question B — The System Design
 
-The platform should trigger a **multi-step incident response**:
+The platform triggers a multi-step incident response:
 
-1. **Classify & escalate**: The message is tagged `complaint` + `urgent` (3am + words "unacceptable", "refund"). Confidence is capped, action is `escalate`.
+1. **Classify & escalate**: Tagged `complaint` + `urgent` (3am + "unacceptable" + "refund"). Confidence capped, action set to `escalate`.
 
-2. **Notify immediately**: Push notification + SMS to the on-call operations manager and the Villa B1 caretaker. WhatsApp message to the caretaker with the guest's complaint.
+2. **Notify immediately**: SMS + push notification to the on-call manager and Villa B1 caretaker.
 
-3. **Create an incident ticket**: Auto-generate an incident in the ticketing system with severity `high`, tagged to the property and reservation. Attach the conversation history.
+3. **Create incident ticket**: Auto-generate with severity `high`, tagged to property and reservation. Attach conversation history.
 
-4. **Send the AI reply**: The empathetic holding response goes out immediately via WhatsApp — the guest shouldn't wait for a human to wake up.
+4. **Send the AI reply**: The holding response goes out via WhatsApp immediately — the guest shouldn't wait for a human to wake up.
 
-5. **Start the 30-minute countdown**: If no human has responded or updated the ticket within 30 minutes, the system escalates further — calls the operations manager, notifies the founder, and sends the guest a follow-up: *"Our team is on their way to resolve this."*
+5. **Start 30-minute countdown**: If no human responds within 30 minutes, escalate further — call the ops manager, notify the founder, send the guest a follow-up: *"Our team is on their way."*
 
-6. **Log everything**: The message, AI response, escalation events, notification delivery timestamps, and eventual resolution are all stored for post-incident review.
+6. **Log everything**: Message, AI response, escalation events, notification timestamps, and resolution — stored for post-incident review.
 
 ---
 
 ## Question C — The Learning
 
-Three hot water complaints in two months at Villa B1 is a **maintenance pattern, not a coincidence**.
+Three hot water complaints in two months at Villa B1 is a maintenance pattern, not a coincidence.
 
-The system should:
+1. **Detect automatically**: A recurring-issue detector groups complaints by property + category weekly. Three complaints about the same system triggers an alert: *"Villa B1: 3 hot water complaints in 60 days — dates, guests, resolution times attached."*
 
-1. **Detect the pattern automatically**: A recurring-issue detector runs weekly, grouping complaints by property + category (plumbing, electrical, cleanliness). Three complaints about the same system triggers an alert to the operations team with a summary: *"Villa B1 has had 3 hot water complaints in 60 days — dates, guests, and resolution times attached."*
+2. **Preventive maintenance**: Auto-create a task to inspect and service the water heater before the next check-in. Link to complaint history so the technician has context.
 
-2. **Trigger a preventive maintenance order**: Auto-create a maintenance task to inspect and service the water heater at Villa B1 before the next guest checks in. Link it to the complaint history so the technician has full context.
+3. **Pre-arrival check**: Add "verify hot water in all bathrooms" to Villa B1's mandatory pre-check-in checklist, confirmed by caretaker 2 hours before arrival.
 
-3. **Add a pre-arrival check**: Update the Villa B1 pre-check-in checklist to include "verify hot water in all bathrooms" as a mandatory item the caretaker confirms 2 hours before every check-in.
+4. **Update AI context**: If another hot water complaint comes in, the AI responds with: *"We're aware this has been an issue and our team has been working on a permanent fix."*
 
-4. **Feed back into AI context**: Update Villa B1's property context so the AI knows this is a known issue. If a future guest asks about amenities, the AI doesn't oversell — and if another hot water complaint comes in, the AI response includes *"We're aware this has been an issue and our team has already been working on a permanent fix."*
-
-The goal isn't just to fix the heater — it's to build a system where the fourth complaint **never happens**.
+The goal: build a system where the fourth complaint never happens.
