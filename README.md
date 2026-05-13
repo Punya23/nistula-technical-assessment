@@ -18,6 +18,21 @@ That's what this project does.
 
 ---
 
+## Quick Start
+
+```bash
+git clone https://github.com/Punya23/nistula-technical-assessment.git
+cd nistula-technical-assessment
+python3 -m venv venv && source venv/bin/activate
+pip install -r requirements.txt
+cp .env.example .env    # Add your ANTHROPIC_API_KEY
+uvicorn app.main:app --reload
+```
+
+Then open [localhost:8000/demo](http://localhost:8000/demo/) for the interactive pipeline demo, or [localhost:8000/docs](http://localhost:8000/docs) for the Swagger UI.
+
+---
+
 ## How It Works
 
 <p align="center">
@@ -189,29 +204,6 @@ Complaints are hard-coded to escalate because no AI should auto-send "sorry abou
 
 ---
 
-## Quick Start
-
-```bash
-# Clone
-git clone https://github.com/Punya23/nistula-technical-assessment.git
-cd nistula-technical-assessment
-
-# Setup
-python3 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-
-# Configure
-cp .env.example .env
-# Add your ANTHROPIC_API_KEY to .env
-
-# Run
-uvicorn app.main:app --reload
-
-# Test
-open http://localhost:8000/docs
-```
-
 ### Docker (Optional)
 
 ```bash
@@ -219,11 +211,9 @@ docker build -t nistula-handler .
 docker run -p 8000:8000 --env-file .env nistula-handler
 ```
 
-Why Docker? A reviewer can spin up the project in one command without worrying about Python versions, virtualenvs, or dependency conflicts. It also mirrors how this would actually deploy — containerised behind a load balancer, scaling horizontally as message volume grows.
-
 ### Interactive Demo
 
-After starting the server, open [localhost:8000/demo](http://localhost:8000/demo/) to test the pipeline visually. Click any pre-loaded guest scenario or type your own message — the UI shows each pipeline stage (validation → classification → AI draft → confidence scoring → action) in real time. Requires a running server with a valid API key in `.env`.
+Open [localhost:8000/demo](http://localhost:8000/demo/) to test the pipeline visually. Click any pre-loaded guest scenario or type your own message — the UI shows each pipeline stage in real time. Requires a running server with a valid API key in `.env`.
 
 ---
 
@@ -375,7 +365,7 @@ Key design choice: Claude failures return 200 with a fallback reply, not 500. Th
 
 ## What I'd Build Next
 
-If this were going into production at Nistula:
+The current system is intentionally synchronous and lightweight for assessment scope. If this were going into production at Nistula:
 
 1. **Conversation memory** — Right now each message is stateless. Store conversation history so the AI knows "this guest asked about pricing yesterday, now they're asking about availability — they're close to booking."
 
@@ -398,6 +388,19 @@ If this were going into production at Nistula:
 - **Stateless conversations** — Each message is processed independently. The system doesn't know that this guest asked about pricing yesterday and is now asking about availability — they're likely close to booking.
 - **Confidence model is heuristic** — The additive rules are explainable but not learned from data. With enough message history, a calibrated model could improve the auto_send threshold.
 - **Single property** — Currently hardcoded for Villa B1. Multi-property support needs property routing and per-property context loading.
+
+---
+
+## Production Considerations
+
+Not implemented (out of scope), but accounted for in design:
+
+- **Rate limiting** — Queue messages through Redis/Celery instead of synchronous Claude calls
+- **Retry logic** — Exponential backoff on transient API failures
+- **Circuit breaker** — Stop calling Claude after N consecutive failures, switch to fallback-only mode
+- **PII masking** — Strip phone numbers and emails from logs and AI prompts
+- **Prompt injection protection** — Sanitise guest messages before including in Claude prompts
+- **Observability** — Structured logging, request tracing, confidence score distribution metrics
 
 ---
 
