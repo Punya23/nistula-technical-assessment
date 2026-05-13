@@ -50,6 +50,12 @@ Then open [localhost:8000/demo](http://localhost:8000/demo/) for the interactive
 7. **Action Router** — Maps final score to `auto_send` (>0.85), `agent_review` (0.60–0.85), or `escalate` (<0.60). Complaints always escalate.
 8. **Response** — Returns message_id, query_type, drafted_reply, confidence_score, action, and full breakdown
 
+**Why rule-based classification first?**
+
+- **Deterministic** — same input always produces the same classification, critical for operational predictability in hospitality escalation workflows
+- **Explainable** — an ops manager can read the matched keyword and understand why a message was routed a certain way
+- **Cost-efficient** — classifies 80% of messages instantly without an LLM call; saves Claude for the hard part (writing the reply)
+
 ### Data Flow
 
 <p align="center">
