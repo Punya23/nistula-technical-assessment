@@ -155,6 +155,25 @@ The biggest risk in any AI powered system: the AI is an external dependency. Cla
 
 Not perfect. But the guest knows they were heard, and the message is flagged for human follow-up. The system never goes silent.
 
+### 4. The Environment Variable Trap
+
+First time I deployed, the API key wasn't loading. The `.env` file had the correct key, but Pydantic's `BaseSettings` was reading an empty `ANTHROPIC_API_KEY` from my shell environment instead. An empty shell variable overrides a `.env` value because the OS environment takes priority.
+
+**What I did:** Added explicit `load_dotenv(override=True)` before Pydantic initialises. The `override=True` flag forces `.env` values to take precedence over shell variables. Small fix, but it's the kind of bug that wastes hours if you don't know where to look.
+
+### 5. The Dead Code Bug
+
+During the audit, I found a logic error in the classifier's length penalty:
+
+```python
+if word_count > 50:
+    length_penalty = 0.1
+elif word_count > 100:   # This never runs — 100 > 50, already caught above
+    length_penalty = 0.2
+```
+
+A 150-word message got the same penalty as a 60-word message. Reversed the check order so longer messages get the correct larger penalty. Small bug, but it's exactly the kind of thing that silently degrades scoring accuracy in production.
+
 ---
 
 ## Action Thresholds

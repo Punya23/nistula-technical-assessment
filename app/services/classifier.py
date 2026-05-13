@@ -210,10 +210,10 @@ def get_classification_confidence(message_text: str, query_type: QueryType) -> f
     # Long messages are harder to classify
     word_count = len(text_lower.split())
     length_penalty = 0.0
-    if word_count > 50:
-        length_penalty = 0.1
-    elif word_count > 100:
+    if word_count > 100:
         length_penalty = 0.2
+    elif word_count > 50:
+        length_penalty = 0.1
 
     # Multiple categories matching = ambiguous
     categories_matched = 0
