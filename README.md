@@ -1,8 +1,8 @@
 # Nistula Guest Message Handler
 
-AI-powered unified guest messaging backend for [Nistula](https://nistula.life), a luxury villa and apartment rental company based in Assagao, Goa.
+AI powered unified guest messaging backend for [Nistula](https://nistula.life), a luxury villa and apartment rental company based in Assagao, Goa.
 
-Built with FastAPI, Claude API integration, rule based query classification, and a PostgreSQL schema designed for multi-channel hospitality operations.
+Built with FastAPI, Claude API integration, rule based query classification, and a PostgreSQL schema designed for multi channel hospitality operations.
 
 ---
 
@@ -33,6 +33,14 @@ Then open [localhost:8000/demo](http://localhost:8000/demo/) for the interactive
 
 ---
 
+## Demo Video
+
+Short walkthrough of the live pipeline and dashboard:
+
+[Watch Demo](https://drive.google.com/file/d/18zfh-sSwotldpwE2Dgy1xaC7rNtCGxWX/view?usp=drive_link)
+
+---
+
 ## How It Works
 
 <p align="center">
@@ -44,8 +52,8 @@ Then open [localhost:8000/demo](http://localhost:8000/demo/) for the interactive
 1. **Entry Point** — `POST /webhook/message` receives JSON from any channel
 2. **Validation** — Pydantic checks source, guest_name, message, timestamp → 422 if invalid
 3. **Normaliser** — Generates UUID, strips channel artifacts (e.g. Booking.com prefixes), unifies schema
-4. **Classifier** — Rule-based keyword matching across 5 priority-ordered categories → outputs query type + classification confidence. Complaints are checked first so a message like "WiFi not working, I want a refund" is classified as a complaint, not a check-in query.
-5. **AI Drafter** — Sends unified message + full property context to Claude API → handles timeouts, errors, and bad JSON with per-type fallback replies
+4. **Classifier** — Rule based keyword matching across 5 priority ordered categories → outputs query type + classification confidence. Complaints are checked first so a message like "WiFi not working, I want a refund" is classified as a complaint, not a check in query.
+5. **AI Drafter** — Sends unified message + full property context to Claude API → handles timeouts, errors, and bad JSON with per type fallback replies
 6. **Confidence Scorer** — Additive model starting at 0.50, adjusts based on keyword match, booking ref, context coverage, reply quality, multi-question penalty, complaint cap
 7. **Action Router** — Maps final score to `auto_send` (>0.85), `agent_review` (0.60–0.85), or `escalate` (<0.60). Complaints always escalate.
 8. **Response** — Returns message_id, query_type, drafted_reply, confidence_score, action, and full breakdown
@@ -82,7 +90,7 @@ WhatsApp automatically POSTs Vikram's message to `POST /webhook/message`. We don
 2. **Normalise** — Strips channel specific artifacts, assigns UUID, maps to unified schema
 3. **Classify** — Keyword matching detects "not working", "unacceptable", "refund" → `complaint`
 4. **AI Draft** — Claude generates an empathetic response using Villa B1's property context (caretaker hours, amenities, policies)
-5. **Confidence Score** — Starts at 0.50, gains +0.20 for clear keyword match, +0.10 for booking ref — but gets **capped at 0.55** because it's a complaint. Complaints should never be auto-sent.
+5. **Confidence Score** — Starts at 0.50, gains +0.20 for clear keyword match, +0.10 for booking ref — but gets **capped at 0.55** because it's a complaint. Complaints should never be autosent.
 6. **Action** — Score 0.55 + complaint type → **ESCALATE**
 
 **3:02 AM — The system decides what happens next based on the action:**
@@ -106,7 +114,7 @@ The system calls the WhatsApp Business API to post the reply back to the same ch
 
 **What gets stored (using our schema.sql):**
 
-The original message, the AI draft, the confidence score (0.55), the action taken (escalate), whether the agent edited the reply, and the resolution timeline — all linked to Vikram's guest profile and his booking `NIS-2024-0950`.
+The original message, the AI draft, the confidence score (0.55), the action taken (escalate), whether the agent edited the reply, and the resolution timeline all linked to Vikram's guest profile and his booking `NIS-2024-0950`.
 
 **What we built vs. what production adds:**
 
@@ -206,7 +214,7 @@ A 150-word message got the same penalty as a 60-word message. Reversed the check
 | < 0.60 | `escalate` | Routed to human, AI draft attached |
 | Any complaint | `escalate` | Always human — regardless of score |
 
-Complaints are hard-coded to escalate because no AI should auto-send "sorry about that" when a guest is demanding a refund at 3am. That requires human empathy and authority.
+Complaints are hardcoded to escalate because no AI should auto-send "sorry about that" when a guest is demanding a refund at 3am. That requires human empathy and authority.
 
 ---
 
@@ -292,7 +300,7 @@ Key coverage areas:
 - **Classification edge cases** — All 6 query types, including messages that match multiple categories (complaint takes priority)
 - **Complaint escalation** — Confidence capping at 0.55, action always set to escalate
 - **Fallback paths** — What the system returns when Claude is unavailable
-- **Confidence scoring** — Base score, each adjustment rule, multi-question penalty, boundary thresholds
+- **Confidence scoring** — Base score, each adjustment rule, multi question penalty, boundary thresholds
 - **Validation** — Missing fields → 422, invalid channels → 422, empty messages → 422
 - **Normalisation** — UUID generation, Booking.com prefix stripping, whitespace handling
 
@@ -300,7 +308,7 @@ Key coverage areas:
 
 - **Real Claude API responses** — Tests use fallback replies to avoid API calls in CI
 - **Concurrent load** — Claude API rate limits would need queuing at scale
-- **Multi-language messages** — Keywords are English-only; real system needs language detection
+- **Multi-language messages** — Keywords are English only; real system needs language detection
 - **Adversarial inputs** — No prompt injection or XSS testing beyond Pydantic validation
 
 ### Manual Testing
@@ -337,7 +345,7 @@ Runs 7 scenarios covering all channels and query types.
 | Claude API error | 200 | Fallback reply, error logged |
 | Unexpected exception | 500 | Error logged with traceback |
 
-Key design choice: Claude failures return 200 with a fallback reply, not 500. The guest doesn't care that our AI broke — they care that they got a response. The `confidence_breakdown` will show `"fallback": true` so the ops team knows.
+Key design choice: Claude failures return 200 with a fallback reply, not 500. The guest doesn't care that our AI broke, they care that they got a response. The `confidence_breakdown` will show `"fallback": true` so the ops team knows.
 
 ---
 
@@ -390,10 +398,10 @@ The current system is intentionally synchronous and lightweight for assessment s
 ## Known Limitations
 
 - **Rule-based classifier** — Keyword matching handles common queries well but may miss nuanced intent. A guest saying "we were expecting more" could be a complaint or feedback. A learned classifier would improve edge case accuracy.
-- **Static property context** — Property data is in-memory. In production, this would come from a database and update in real time (seasonal rates, maintenance status, availability changes).
+- **Static property context** — Property data is in memory. In production, this would come from a database and update in real time (seasonal rates, maintenance status, availability changes).
 - **Stateless conversations** — Each message is processed independently. The system doesn't know that this guest asked about pricing yesterday and is now asking about availability — they're likely close to booking.
 - **Confidence model is heuristic** — The additive rules are explainable but not learned from data. With enough message history, a calibrated model could improve the auto_send threshold.
-- **Single property** — Currently hardcoded for Villa B1. Multi-property support needs property routing and per-property context loading.
+- **Single property** — Currently hardcoded for Villa B1. Multi property support needs property routing and per-property context loading.
 
 ---
 
@@ -422,11 +430,11 @@ Why this wording: acknowledge the frustration immediately, don't argue about the
 
 **Question B — What should the system do beyond sending a message?**
 
-Trigger a P1 escalation: SMS the on-call manager, push notification to ops, auto-generate an incident ticket, send the AI reply immediately, and start a 30-minute countdown. If no human responds, escalate further and send the guest a follow-up.
+Trigger a P1 escalation: SMS the on call manager, push notification to ops, auto generate an incident ticket, send the AI reply immediately, and start a 30 minute countdown. If no human responds, escalate further and send the guest a follow-up.
 
 **Question C — Third hot water complaint in two months — what now?**
 
-This is a maintenance pattern, not a coincidence. Build a recurring-issue detector that groups complaints by property + category. Three complaints triggers a preventive maintenance order, adds "verify hot water" to the pre-check-in checklist, and updates the AI context so it doesn't oversell. The goal: the fourth complaint never happens.
+This is a maintenance pattern, not a coincidence. Build a recurring issue detector that groups complaints by property + category. Three complaints triggers a preventive maintenance order, adds "verify hot water" to the pre check-in checklist, and updates the AI context so it doesn't oversell. The goal: the fourth complaint never happens.
 
 ---
 
